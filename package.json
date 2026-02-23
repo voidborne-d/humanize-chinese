@@ -1,0 +1,33 @@
+{
+  "name": "humanize-chinese",
+  "version": "1.0.0",
+  "description": "Detect and humanize AI-generated Chinese text. ClawHub skill for making AI writing natural and undetectable.",
+  "main": "SKILL.md",
+  "scripts": {
+    "detect": "python scripts/detect_cn.py",
+    "humanize": "python scripts/humanize_cn.py",
+    "compare": "python scripts/compare_cn.py"
+  },
+  "keywords": [
+    "ai",
+    "chinese",
+    "humanize",
+    "detector",
+    "clawhub",
+    "skill",
+    "ai-detector",
+    "chinese-ai",
+    "deai",
+    "去ai化"
+  ],
+  "author": "voidborne-d",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/voidborne-d/humanize-chinese.git"
+  },
+  "bugs": {
+    "url": "https://github.com/voidborne-d/humanize-chinese/issues"
+  },
+  "homepage": "https://github.com/voidborne-d/humanize-chinese#readme"
+}
