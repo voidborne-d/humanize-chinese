@@ -1,123 +1,171 @@
 #!/usr/bin/env python3
 """
-Compare AI detection scores before and after humanization
+Compare AI detection scores before and after humanization v2.0
+Shows detailed diff of score changes by category
 """
 
 import sys
 import subprocess
 import os
+import json
+import argparse
 
-def run_detect(text):
-    """Run detect_cn.py and get score"""
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    detect_script = os.path.join(script_dir, 'detect_cn.py')
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+def run_detect(text, as_json=True):
+    """Run detect_cn.py and get results"""
+    detect_script = os.path.join(SCRIPT_DIR, 'detect_cn.py')
+    cmd = ['python3', detect_script]
+    if as_json:
+        cmd.append('-j')
     
     try:
         result = subprocess.run(
-            ['python3', detect_script, '-s'],
-            input=text.encode('utf-8'),
-            capture_output=True,
-            timeout=10
+            cmd, input=text, capture_output=True,
+            text=True, encoding='utf-8', timeout=30
         )
-        return result.stdout.decode('utf-8').strip()
+        if as_json and result.returncode == 0:
+            return json.loads(result.stdout)
+        return result.stdout.strip()
     except Exception as e:
-        return f'error: {e}'
+        return {'error': str(e)}
 
-def run_humanize(text, scene='general', aggressive=False):
+def run_humanize(text, scene='general', aggressive=False, style=None):
     """Run humanize_cn.py and get result"""
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    humanize_script = os.path.join(script_dir, 'humanize_cn.py')
-    
+    humanize_script = os.path.join(SCRIPT_DIR, 'humanize_cn.py')
     cmd = ['python3', humanize_script, '--scene', scene]
     if aggressive:
         cmd.append('-a')
+    if style:
+        cmd.extend(['--style', style])
     
     try:
         result = subprocess.run(
-            cmd,
-            input=text.encode('utf-8'),
-            capture_output=True,
-            timeout=10
+            cmd, input=text, capture_output=True,
+            text=True, encoding='utf-8', timeout=30
         )
-        return result.stdout.decode('utf-8')
+        return result.stdout
     except Exception as e:
         return f'error: {e}'
 
-def main():
-    # Parse arguments
-    output_file = None
-    scene = 'general'
-    aggressive = False
+def format_comparison(before, after):
+    """Format detailed comparison"""
+    lines = []
     
-    i = 1
-    while i < len(sys.argv):
-        arg = sys.argv[i]
-        if arg == '-o' and i + 1 < len(sys.argv):
-            output_file = sys.argv[i + 1]
-            i += 2
-        elif arg == '--scene' and i + 1 < len(sys.argv):
-            scene = sys.argv[i + 1]
-            i += 2
-        elif arg == '-a':
-            aggressive = True
-            i += 1
-        elif arg.startswith('-'):
-            i += 1
-        else:
-            filepath = arg
-            i += 1
+    b_score = before.get('score', 0)
+    a_score = after.get('score', 0)
+    b_level = before.get('level', 'unknown')
+    a_level = after.get('level', 'unknown')
+    
+    # Score comparison bar
+    b_bar_len = int(b_score / 100 * 20)
+    a_bar_len = int(a_score / 100 * 20)
+    
+    lines.append('═══ 对比结果 ═══\n')
+    lines.append(f'原文:   {b_score:3d}/100 [{"█" * b_bar_len}{"░" * (20 - b_bar_len)}] {b_level.upper()}')
+    lines.append(f'改写后: {a_score:3d}/100 [{"█" * a_bar_len}{"░" * (20 - a_bar_len)}] {a_level.upper()}')
+    
+    diff = b_score - a_score
+    if diff > 0:
+        lines.append(f'\n✅ 降低了 {diff} 分')
+    elif diff == 0:
+        lines.append(f'\n⚠️  分数未变化')
+    else:
+        lines.append(f'\n❌ 分数上升了 {abs(diff)} 分')
+    
+    # Category breakdown
+    b_issues = before.get('issues', {})
+    a_issues = after.get('issues', {})
+    all_cats = set(list(b_issues.keys()) + list(a_issues.keys()))
+    
+    if all_cats:
+        lines.append('\n── 分类变化 ──')
+        for cat in sorted(all_cats):
+            b_count = len(b_issues.get(cat, []))
+            a_count = len(a_issues.get(cat, []))
+            
+            if b_count == 0 and a_count == 0:
+                continue
+            
+            if a_count < b_count:
+                status = '✅'
+            elif a_count == b_count:
+                status = '➖'
+            else:
+                status = '❌'
+            
+            lines.append(f'  {status} {cat}: {b_count} → {a_count}')
+    
+    # Metrics comparison
+    b_metrics = before.get('metrics', {})
+    a_metrics = after.get('metrics', {})
+    
+    if b_metrics and a_metrics:
+        lines.append('\n── 指标变化 ──')
+        b_emo = b_metrics.get('emotional_density', 0)
+        a_emo = a_metrics.get('emotional_density', 0)
+        lines.append(f'  情感密度: {b_emo:.2f}% → {a_emo:.2f}%')
+        
+        b_ent = b_metrics.get('entropy')
+        a_ent = a_metrics.get('entropy')
+        if b_ent and a_ent:
+            lines.append(f'  信息熵:   {b_ent:.2f} → {a_ent:.2f}')
+    
+    return '\n'.join(lines)
+
+def main():
+    parser = argparse.ArgumentParser(description='中文 AI 文本对比分析 v2.0')
+    parser.add_argument('file', nargs='?', help='输入文件路径')
+    parser.add_argument('-o', '--output', help='保存改写结果')
+    parser.add_argument('--scene', default='general',
+                       choices=['general', 'social', 'tech', 'formal', 'chat'],
+                       help='场景')
+    parser.add_argument('--style', help='写作风格')
+    parser.add_argument('-a', '--aggressive', action='store_true', help='激进模式')
+    
+    args = parser.parse_args()
     
     # Read input
-    try:
-        if 'filepath' in locals():
-            with open(filepath, 'r', encoding='utf-8') as f:
+    if args.file:
+        try:
+            with open(args.file, 'r', encoding='utf-8') as f:
                 original_text = f.read()
-        else:
-            original_text = sys.stdin.read()
-    except FileNotFoundError:
-        print(f'错误: 文件未找到 {filepath}', file=sys.stderr)
+        except FileNotFoundError:
+            print(f'错误: 文件未找到 {args.file}', file=sys.stderr)
+            sys.exit(1)
+    else:
+        original_text = sys.stdin.read()
+    
+    if not original_text.strip():
+        print('错误: 输入为空', file=sys.stderr)
         sys.exit(1)
     
-    # Get original score
-    print('正在检测原文...')
-    original_score = run_detect(original_text)
+    # Detect original
+    print('⏳ 检测原文...')
+    before = run_detect(original_text, as_json=True)
     
     # Humanize
-    print('正在人类化改写...')
-    humanized_text = run_humanize(original_text, scene, aggressive)
+    print('⏳ 人性化改写...')
+    humanized_text = run_humanize(original_text, args.scene, args.aggressive, args.style)
     
-    # Get new score
-    print('正在检测改写后...')
-    new_score = run_detect(humanized_text)
+    # Detect humanized
+    print('⏳ 检测改写后...')
+    after = run_detect(humanized_text, as_json=True)
     
     # Show comparison
-    print('\n=== 对比结果 ===\n')
-    print(f'原文 AI 概率: {original_score}')
-    print(f'改写后 AI 概率: {new_score}')
-    print()
-    
-    # Improvement assessment
-    score_levels = {'low': 0, 'medium': 1, 'high': 2, 'very high': 3}
-    original_level = score_levels.get(original_score, -1)
-    new_level = score_levels.get(new_score, -1)
-    
-    if new_level < original_level:
-        improvement = original_level - new_level
-        print(f'✅ 改善了 {improvement} 个等级')
-    elif new_level == original_level:
-        print('⚠️  等级未变化（可能需要手动优化）')
+    if isinstance(before, dict) and isinstance(after, dict) and 'error' not in before:
+        print(format_comparison(before, after))
     else:
-        print('❌ 检测等级上升（不太可能）')
-    
-    print()
+        print(f'\n原文分数: {before}')
+        print(f'改写后分数: {after}')
     
     # Save output
-    if output_file:
-        with open(output_file, 'w', encoding='utf-8') as f:
+    if args.output:
+        with open(args.output, 'w', encoding='utf-8') as f:
             f.write(humanized_text)
-        print(f'改写结果已保存到: {output_file}')
+        print(f'\n改写结果已保存到: {args.output}')
     else:
-        print('=== 改写后文本 ===\n')
+        print('\n═══ 改写后文本 ═══\n')
         print(humanized_text)
 
 if __name__ == '__main__':

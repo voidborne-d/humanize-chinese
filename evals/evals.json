@@ -1,0 +1,14 @@
+[
+  {
+    "prompt": "帮我检测一下这段文字是不是AI写的：随着人工智能技术的不断发展，AI在医疗领域展现出了巨大的潜力。首先，值得注意的是，通过深度学习和大数据分析，AI能够助力医生进行更精准的诊断。",
+    "expected_behavior": "Agent runs detect_cn.py, reports HIGH or VERY HIGH score with specific issues found (三段式, 机械连接词, 模板句式)"
+  },
+  {
+    "prompt": "把这段AI味很重的文字改成人话：综上所述，在数字化转型的背景下，赋能传统行业已成为不可逆转的趋势。值得注意的是，深度融合是实现高质量发展的必由之路。",
+    "expected_behavior": "Agent runs humanize_cn.py (possibly with -a flag), output removes 综上所述/赋能/深度融合/高质量发展 etc., then verifies with detect_cn.py showing lower score"
+  },
+  {
+    "prompt": "把这篇文章改成小红书风格",
+    "expected_behavior": "Agent runs style_cn.py --style xiaohongshu or humanize_cn.py --style xiaohongshu, output has emoji, short paragraphs, enthusiastic tone, hashtags"
+  }
+]

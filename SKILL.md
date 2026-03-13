@@ -1,6 +1,6 @@
 ---
 name: humanize-chinese
-description: Detect and humanize AI-generated Chinese text with 6 style transforms (casual/zhihu/xiaohongshu/wechat/academic/literary). Removes "AI flavor" using 16 detection patterns. Pure Python, no dependencies. v1.1.0
+description: Detect and humanize AI-generated Chinese text. 20+ detection categories, weighted 0-100 scoring with sentence-level analysis, 7 style transforms (casual/zhihu/xiaohongshu/wechat/academic/literary/weibo), sentence restructuring, context-aware replacement. Pure Python, no dependencies. v2.0.0
 allowed-tools:
   - Read
   - Write
@@ -8,292 +8,228 @@ allowed-tools:
   - exec
 ---
 
-# Humanize Chinese AI Text
+# Humanize Chinese AI Text v2.0
 
-Comprehensive CLI for detecting and transforming Chinese AI-generated text. Makes robotic AI writing natural and human-like with 6 specialized writing style transforms.
+Comprehensive CLI for detecting and transforming Chinese AI-generated text. Makes robotic AI writing natural and human-like.
 
-**NEW in v1.1:** Style transforms (知乎/小红书/公众号/口语化/学术/文艺), enhanced detection (16 patterns), emotional analysis
+**v2.0 highlights:** weighted 0-100 scoring, sentence-level analysis, sentence restructuring (merge/split), context-aware replacement, rhythm variation, vocabulary diversification, 7 style transforms, external pattern config (`patterns_cn.json`).
 
 ## Quick Start
 
 ```bash
-# Detect AI patterns (16 categories)
+# Detect AI patterns (20+ categories, 0-100 score)
 python scripts/detect_cn.py text.txt
+python scripts/detect_cn.py text.txt -v          # verbose + worst sentences
+python scripts/detect_cn.py text.txt -s           # score only
+python scripts/detect_cn.py text.txt -j           # JSON output
 
 # Humanize text
 python scripts/humanize_cn.py text.txt -o clean.txt
+python scripts/humanize_cn.py text.txt --scene social
+python scripts/humanize_cn.py text.txt --scene tech -a   # aggressive mode
+python scripts/humanize_cn.py text.txt --seed 42         # reproducible
 
-# Scene-specific humanization
-python scripts/humanize_cn.py text.txt --scene social  # Social media
-python scripts/humanize_cn.py text.txt --scene tech    # Tech blog
-python scripts/humanize_cn.py text.txt --scene formal  # Formal article
-
-# NEW: Apply writing styles
-python scripts/humanize_cn.py text.txt --style zhihu -o zhihu.txt
-python scripts/humanize_cn.py text.txt --style xiaohongshu -o xhs.txt
-python scripts/style_cn.py text.txt --style casual -o casual.txt
-
-# List all available styles
+# Apply writing styles
+python scripts/style_cn.py text.txt --style zhihu -o zhihu.txt
+python scripts/style_cn.py text.txt --style xiaohongshu
 python scripts/style_cn.py --list
 
 # Compare before/after
+python scripts/compare_cn.py text.txt --scene tech -a
 python scripts/compare_cn.py text.txt -o clean.txt
 ```
 
 ---
 
-## Detection Categories
+## Detection System
 
-The analyzer checks for **16 pattern categories** specific to Chinese AI text (v1.1 added 4 new patterns):
+### Scoring
 
-### Critical (Immediate AI Detection)
+Weighted 0-100 score with 4 severity levels:
+
+| Score | Level | Meaning |
+|-------|-------|---------|
+| 0-24  | LOW | Likely human-written |
+| 25-49 | MEDIUM | Some AI signals |
+| 50-74 | HIGH | Probably AI-generated |
+| 75-100 | VERY HIGH | Almost certainly AI |
+
+### Detection Categories
+
+#### 🔴 Critical (weight: 8)
 | Category | Examples |
 |----------|----------|
-| Three-Part Structure | 首先...其次...最后, 一方面...另一方面 |
-| Mechanical Connectors | 值得注意的是, 综上所述, 不难发现 |
-| Empty Grand Words | 赋能, 闭环, 智慧时代, 数字化转型 |
+| Three-Part Structure | 首先...其次...最后, 一方面...另一方面, 其一...其二...其三 |
+| Mechanical Connectors | 值得注意的是, 综上所述, 不难发现, 归根结底, 由此可见 |
+| Empty Grand Words | 赋能, 闭环, 数字化转型, 协同增效, 全方位, 多维度 |
 
-### High Signal
+#### 🟠 High Signal (weight: 4)
 | Category | Examples |
 |----------|----------|
-| AI High-Frequency Words | 助力, 彰显, 凸显, 焕发, 深度剖析 |
-| Technical Jargon Misuse | 解构, 量子纠缠, 光谱 (in non-tech context) |
-| Excessive Rhetoric | 对偶句 (>2x), 排比句 (>1x), 引用句 (>4x) |
+| AI High-Frequency Words | 助力, 彰显, 底层逻辑, 抓手, 触达, 沉淀, 复盘 |
+| Filler Phrases | 值得一提的是, 众所周知, 毫无疑问 |
+| Balanced Arguments | 虽然...但是...同时, 既有...也有...更有 |
+| Template Sentences | 随着...的不断发展, 在当今...时代, 作为...的重要组成部分 |
 
-### Medium Signal
+#### 🟡 Medium Signal (weight: 2)
 | Category | Examples |
 |----------|----------|
-| Punctuation Overuse | Dense em dashes, excessive semicolons |
-| Obscure Metaphors | Forced, disconnected comparisons |
-| Uniform Paragraphs | Equal-length paragraphs (no rhythm) |
+| Hedging Language | 在一定程度上, 某种程度上, 通常情况下 (>5 occurrences) |
+| List Addiction | Excessive numbered/bulleted lists |
+| Punctuation Overuse | Dense em dashes, semicolons |
+| Excessive Rhetoric | 对偶/排比句过多 |
 
-### Style Signal
-| Category | Examples |
-|----------|----------|
-| Low Burstiness | Monotonous sentence structure |
-| Low Perplexity | Predictable word choices |
-| Emotional Flatness | **NEW** Lack of emotional words and expressions |
-| Repetitive Structure | **NEW** Sentence starters repeat >3 times |
-| Slang Overuse | **NEW** Internet slang in formal context |
-| Vocabulary Homogeneity | **NEW** Low diversity in word choice |
+#### ⚪ Style Signal (weight: 1.5)
+| Category | Description |
+|----------|-------------|
+| Uniform Paragraphs | Low CV in paragraph lengths |
+| Low Burstiness | Monotonous sentence lengths |
+| Emotional Flatness | Lack of emotional/personal expressions |
+| Repetitive Starters | Same sentence starters >3 times |
+| Low Entropy | Low character-level entropy (predictable text) |
+
+### Sentence-Level Analysis
+
+With `-v` (verbose) mode, the detector identifies the most AI-like sentences:
+
+```
+── 最可疑句子 ──
+  1. [16分] 随着人工智能技术的不断发展，在当今数字化转型时代...
+     原因: 数字化转型, 深度融合, 模板: 随着.*?的(不断)?发展
+```
 
 ---
 
-## Writing Style Transforms (NEW in v1.1)
+## Humanization Engine
 
-Transform text into 6 specialized Chinese writing styles:
+### Transforms (applied in order)
 
-| Style | Name | Description | Best For |
-|-------|------|-------------|----------|
-| `casual` | 口语化风格 | Like chatting with friends — natural, relaxed | Social media, messaging |
-| `zhihu` | 知乎风格 | Rational, in-depth, with personal opinions | Q&A platforms, thoughtful analysis |
-| `xiaohongshu` | 小红书风格 | Enthusiastic, emoji-rich, product-focused | Lifestyle sharing, reviews, recommendations |
-| `wechat` | 公众号风格 | Storytelling, engaging, relatable | WeChat articles, newsletters |
-| `academic` | 学术风格 | Rigorous but not stiff, precise terminology | Academic papers, research reports |
-| `literary` | 文艺风格 | Poetic, imagery-rich, metaphorical | Creative writing, essays |
+1. **Structure cleanup** — Remove three-part structure (首先/其次/最后)
+2. **Phrase replacement** — Context-aware replacement of AI phrases (regex patterns first, then plain text, longest-first matching)
+3. **Sentence merge** — Merge overly short consecutive sentences
+4. **Sentence split** — Split long sentences at natural breakpoints (但是/不过/同时)
+5. **Punctuation normalization** — Reduce excessive semicolons, em dashes
+6. **Vocabulary diversification** — Replace repeated words (进行/实现/提供 etc.) with synonyms
+7. **Paragraph rhythm** — Vary uniform paragraph lengths (merge short, split long)
+8. **Casual injection** — Add human expressions (scene-dependent)
+9. **Paragraph shortening** — For social/chat scenes
 
-### Usage
+### Scenes
 
-```bash
-# Apply style directly
-python scripts/style_cn.py input.txt --style zhihu -o output.txt
+| Scene | Casualness | Best For |
+|-------|-----------|----------|
+| `general` | 0.3 | Default, balanced |
+| `social` | 0.7 | Social media, short posts |
+| `tech` | 0.3 | Tech blogs, tutorials |
+| `formal` | 0.1 | Formal articles, reports |
+| `chat` | 0.8 | Conversations, messaging |
 
-# Combine humanization + style
-python scripts/humanize_cn.py ai_text.txt --style xiaohongshu -o natural.txt
+### Aggressive Mode (`-a`)
 
-# List all styles
-python scripts/style_cn.py --list
-```
+Adds +0.3 casualness, more colloquial expressions, stronger sentence restructuring. Typical score reduction: **60-80 points** on heavily AI-generated text.
 
-### Style Features
+### Reproducibility
 
-#### Casual (口语化)
-- Removes formal structure (首先/其次/最后)
-- Adds colloquial connectors (说实话, 确实, 其实)
-- Includes tone particles (吧, 呢, 啊)
-- Light emoji usage
-
-#### Zhihu (知乎)
-- Personal opinion markers (从我的经验来看, 个人认为)
-- Data/evidence support (实测发现, 根据XX调研)
-- Example-driven (举个例子)
-- Logical but conversational
-
-#### Xiaohongshu (小红书)
-- Enthusiastic openers (姐妹们！分享一下～)
-- High emoji density (😊✨💯)
-- Intensifiers (超级, 巨, 绝绝子, yyds)
-- Hashtags (#好物分享)
-- Short paragraphs
-
-#### Wechat (公众号)
-- Story-driven openings
-- Questions for engagement (你有没有想过)
-- Relatable scenarios
-- Emotional connection
-
-#### Academic (学术)
-- Removes colloquialisms
-- Precise terminology
-- Formal connectors (研究表明, 数据显示)
-- Reduces emotional expressions
-
-#### Literary (文艺)
-- Metaphors and imagery
-- Poetic language
-- Descriptive phrases (在XX的光影里)
-- Artistic expressions
+Use `--seed N` for reproducible results (same input + seed = same output).
 
 ---
 
-## Scripts
+## Writing Style Transforms
 
-### detect_cn.py — Scan Chinese AI Patterns
+7 specialized Chinese writing styles:
 
-```bash
-python scripts/detect_cn.py essay.txt
-python scripts/detect_cn.py essay.txt -j  # JSON output
-python scripts/detect_cn.py essay.txt -s  # score only
-echo "文本" | python scripts/detect_cn.py
-```
+| Style | Name | Description |
+|-------|------|-------------|
+| `casual` | 口语化 | Like chatting with friends — natural, relaxed |
+| `zhihu` | 知乎 | Rational, in-depth, personal opinions |
+| `xiaohongshu` | 小红书 | Enthusiastic, emoji-rich, product-focused |
+| `wechat` | 公众号 | Storytelling, engaging, relatable |
+| `academic` | 学术 | Rigorous, precise, no colloquialisms |
+| `literary` | 文艺 | Poetic, imagery-rich, metaphorical |
+| `weibo` | 微博 | Short, opinionated, shareable |
 
-**Output:**
-- AI feature statistics (by category)
-- AI probability score (low/medium/high/very high)
-- Auto-fixable patterns marked
-- Perplexity and burstiness indicators
-
-### humanize_cn.py — Transform to Human-Like
+### Combine humanize + style
 
 ```bash
-python scripts/humanize_cn.py essay.txt
-python scripts/humanize_cn.py essay.txt -o output.txt
-python scripts/humanize_cn.py essay.txt --scene social  # Social media style
-python scripts/humanize_cn.py essay.txt -a              # Aggressive mode
+python scripts/humanize_cn.py text.txt --style xiaohongshu -o xhs.txt
 ```
 
-**Scene Parameters (--scene):**
-- `social`: Social media (casual, conversational)
-- `tech`: Tech blog (professional but approachable)
-- `formal`: Formal article (rigorous but natural)
-- `chat`: Chat/dialogue (friendly, concise)
+This first humanizes (removes AI patterns) then applies the style transform.
 
-**Auto-fixes:**
-- Remove three-part structure (首先/其次/最后)
-- Replace mechanical connectors (值得注意的是 → 注意/要提醒的是)
-- Simplify empty words (赋能 → 帮助/提升, 闭环 → 完整流程)
-- Reduce punctuation density (em dash, semicolon)
-- Control rhetoric frequency (对偶, 排比, 比喻)
+---
 
-**Aggressive Mode (-a):**
-- Add colloquial expressions
-- Inject emotional color
-- Vary sentence rhythm
-- Add personal perspective
+## External Configuration
 
-### compare_cn.py — Before/After Analysis
+All patterns, replacements, and scoring weights are in `scripts/patterns_cn.json`. Edit this file to:
+
+- Add new AI vocabulary patterns
+- Customize replacement alternatives
+- Adjust scoring weights per severity
+- Add regex patterns for template detection
+- Set thresholds for hedging language detection
+
+---
+
+## Scripts Reference
+
+### detect_cn.py
 
 ```bash
-python scripts/compare_cn.py essay.txt
-python scripts/compare_cn.py essay.txt --scene tech -o clean.txt
+python scripts/detect_cn.py [file] [-j] [-s] [-v] [--sentences N]
 ```
 
-Shows AI feature comparison and score changes before/after transformation.
+| Flag | Description |
+|------|-------------|
+| `-j` | JSON output |
+| `-s` | Score only (e.g. "72/100 (high)") |
+| `-v` | Verbose: show worst sentences |
+| `--sentences N` | Number of worst sentences to show (default: 5) |
 
-### style_cn.py — Writing Style Transform (NEW)
+### humanize_cn.py
 
 ```bash
-python scripts/style_cn.py essay.txt --style zhihu -o essay_zhihu.txt
-python scripts/style_cn.py blog.txt --style xiaohongshu -o blog_xhs.txt
-python scripts/style_cn.py --list  # Show all available styles
+python scripts/humanize_cn.py [file] [-o output] [--scene S] [--style S] [-a] [--seed N]
 ```
 
-**Supported styles:** casual, zhihu, xiaohongshu, wechat, academic, literary
+| Flag | Description |
+|------|-------------|
+| `-o` | Output file |
+| `--scene` | general/social/tech/formal/chat |
+| `--style` | casual/zhihu/xiaohongshu/wechat/academic/literary/weibo |
+| `-a` | Aggressive mode |
+| `--seed` | Random seed for reproducibility |
 
-Transform text into specific Chinese writing styles with style-appropriate vocabulary, tone, and structure.
+### style_cn.py
+
+```bash
+python scripts/style_cn.py [file] --style S [-o output] [--seed N] [--list]
+```
+
+### compare_cn.py
+
+```bash
+python scripts/compare_cn.py [file] [-o output] [--scene S] [--style S] [-a]
+```
+
+Shows score diff, category changes, and metric comparison before/after humanization.
 
 ---
 
 ## Workflow
 
-1. **Scan** for detection risk:
-   ```bash
-   python scripts/detect_cn.py document.txt
-   ```
+```bash
+# 1. Check AI score
+python scripts/detect_cn.py document.txt -v
 
-2. **Transform** with comparison:
-   ```bash
-   python scripts/compare_cn.py document.txt --scene tech -o document_v2.txt
-   ```
+# 2. Humanize with comparison
+python scripts/compare_cn.py document.txt --scene tech -a -o clean.txt
 
-3. **Verify** improvement:
-   ```bash
-   python scripts/detect_cn.py document_v2.txt -s
-   ```
+# 3. Verify improvement
+python scripts/detect_cn.py clean.txt -s
 
-4. **Manual review** for content quality and scene appropriateness
-
----
-
-## AI Probability Scoring
-
-| Rating | Criteria |
-|--------|----------|
-| Very High | Three-part structure, mechanical connectors, or empty grand words present |
-| High | >20 issues OR issue density >3% |
-| Medium | >10 issues OR issue density >1.5% |
-| Low | <10 issues AND density <1.5% |
-
----
-
-## Scene-Specific Guidelines
-
-### Social Media (社交媒体)
-**Style:** Casual, conversational, like chatting with friends
-- ✅ Short paragraphs (1-3 sentences)
-- ✅ Colloquial expressions (说实话, 没想到, 真的绝了)
-- ✅ Specific details (product names, locations, personal feelings)
-- ✅ Emoji and hashtags
-- ❌ Avoid: 值得注意的是, 总而言之
-- ❌ Avoid: Long paragraphs, complex sentences
-
-### Tech Blog (技术博客)
-**Style:** Professional but approachable, can be humorous
-- ✅ Specific tech stack, tool names
-- ✅ Code examples, performance data
-- ✅ Real experiences ("踩过的坑", "实测效果")
-- ✅ Clear structure with headings (not numbered lists)
-- ❌ Avoid: 赋能, 闭环, 生态
-- ❌ Avoid: 首先/其次/最后structure
-
-### Formal Article (正式文章)
-**Style:** Objective, rigorous, but natural
-- ✅ Clear logic with proper evidence
-- ✅ Precise academic expressions
-- ✅ Cited research sources
-- ✅ Data and charts supporting arguments
-- ❌ Avoid: Excessive rhetoric (对偶, 排比)
-- ❌ Avoid: Empty grand words
-
-### Chat/Dialogue (对话场景)
-**Style:** Friendly, patient, genuine
-- ✅ Concise, targeted responses
-- ✅ Empathy and understanding
-- ✅ Direct solutions
-- ✅ Moderate emoji use
-- ❌ Avoid: 很高兴为您服务 (template phrases)
-- ❌ Avoid: Lengthy explanations, repetitive questions
-
----
-
-## Customizing Patterns
-
-Edit `scripts/patterns_cn.json` to add/modify:
-- `ai_vocabulary_cn` — Chinese AI high-frequency words
-- `filler_phrases_cn` — Clichés and replacements
-- `empty_words_cn` — Empty grand vocabulary
-- `rhetoric_limits` — Rhetoric frequency limits
-- `scene_styles` — Scene-specific style configs
+# 4. Optional: apply specific style
+python scripts/style_cn.py clean.txt --style zhihu -o final.txt
+```
 
 ---
 
@@ -306,23 +242,8 @@ for f in *.txt; do
   python scripts/detect_cn.py "$f" -s
 done
 
-# Transform all markdown (tech blog style)
+# Transform all markdown
 for f in *.md; do
-  python scripts/humanize_cn.py "$f" --scene tech -o "${f%.md}_clean.md"
+  python scripts/humanize_cn.py "$f" --scene tech -a -o "${f%.md}_clean.md"
 done
 ```
-
----
-
-## Reference
-
-Based on comprehensive Chinese AI writing research:
-- Tencent News: "Deconstructing 'AI Flavor': Why We Dislike AI Writing"
-- 53AI: "Detection and Optimization of Article 'AI Flavor'"
-- AIGCleaner and other Chinese de-AI tools
-- Wikipedia: "Signs of AI Writing" (English reference)
-
-Key insights:
-- **Perplexity**: AI text has low perplexity (predictable word choices)
-- **Burstiness**: AI text has low burstiness (uniform sentence structure)
-- **Emotion**: AI text lacks strong opinions and personal color

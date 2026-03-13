@@ -1,187 +1,105 @@
-# Humanize Chinese AI Text
+# humanize-chinese
 
-Detect and transform AI-generated Chinese text to make it natural and undetectable.
+Detect and humanize AI-generated Chinese text. Makes robotic AI writing natural and undetectable.
 
-## Overview
-
-This ClawHub skill identifies "AI flavor" (AI 味) in Chinese text and rewrites it to sound human-like. Based on comprehensive research of Chinese AI writing patterns from mainstream models (ChatGPT, DeepSeek, etc.).
+[![ClawHub](https://img.shields.io/badge/clawhub-humanize--chinese-blue)](https://clawhub.com/skills/humanize-chinese)
 
 ## Features
 
-- **16 detection categories** specific to Chinese AI text (NEW: emotional flatness, vocabulary diversity, slang overuse, etc.)
-- **Scene-specific humanization** (social media, tech blogs, formal articles, chat)
-- **6 style transforms** (casual, zhihu, xiaohongshu, wechat, academic, literary) — NEW in v1.1!
-- **Pure Python** — no dependencies required
-- **CLI-friendly** — supports files and stdin/stdout
+- **20+ detection categories** with weighted 0-100 scoring
+- **Sentence-level analysis** — find the most AI-like sentences
+- **Context-aware replacement** — regex patterns + plain text, longest-first
+- **Sentence restructuring** — merge short, split long, vary rhythm
+- **Vocabulary diversification** — reduce word repetition
+- **7 writing styles** — casual, zhihu, xiaohongshu, wechat, academic, literary, weibo
+- **External config** — all patterns in `patterns_cn.json`
+- **Pure Python** — no dependencies
+
+## Install
+
+```bash
+clawhub install humanize-chinese
+```
+
+Or clone:
+
+```bash
+git clone https://github.com/voidborne-d/humanize-chinese.git
+```
 
 ## Quick Start
 
 ```bash
 # Detect AI patterns
 python scripts/detect_cn.py text.txt
+python scripts/detect_cn.py text.txt -v    # verbose with worst sentences
+python scripts/detect_cn.py text.txt -s    # score only: "72/100 (high)"
 
-# Humanize with default settings
+# Humanize
 python scripts/humanize_cn.py text.txt -o clean.txt
+python scripts/humanize_cn.py text.txt --scene tech -a   # aggressive mode
 
-# Scene-specific humanization
-python scripts/humanize_cn.py text.txt --scene social -o social.txt
-python scripts/humanize_cn.py text.txt --scene tech -o tech.txt
-
-# NEW: Apply specific writing styles
-python scripts/humanize_cn.py text.txt --style zhihu -o zhihu.txt
-python scripts/humanize_cn.py text.txt --style xiaohongshu -o xhs.txt
-python scripts/style_cn.py text.txt --style casual -o casual.txt
+# Style transform
+python scripts/style_cn.py text.txt --style xiaohongshu
 
 # Compare before/after
-python scripts/compare_cn.py text.txt -o clean.txt
+python scripts/compare_cn.py text.txt --scene tech -a
 ```
 
-## Detection Categories
+## Scoring
 
-### Critical (Immediate AI Detection)
-- Three-part structure (首先...其次...最后)
-- Mechanical connectors (值得注意的是, 综上所述)
-- Empty grand words (赋能, 闭环, 智慧时代)
+| Score | Level | Meaning |
+|-------|-------|---------|
+| 0-24  | LOW | Likely human-written |
+| 25-49 | MEDIUM | Some AI signals |
+| 50-74 | HIGH | Probably AI-generated |
+| 75-100 | VERY HIGH | Almost certainly AI |
 
-### High Signal
-- AI high-frequency words (助力, 彰显, 凸显)
-- Technical jargon misuse (解构, 量子纠缠 in non-tech context)
-- Excessive rhetoric (对偶句 >2x, 排比句 >1x)
+## Detection Example
 
-### Medium Signal
-- Punctuation overuse (em dashes, semicolons, ellipses)
-- Obscure metaphors
-- Uniform paragraph lengths
-- Repetitive sentence structure (NEW)
-- Internet slang overuse (NEW)
+```
+AI 评分: 100/100 [████████████████████] VERY HIGH
+字符: 381 | 句子: 14 | 段落: 5
+信息熵: 8.29 | 情感密度: 0.00%
+问题总数: 25
 
-### Style Signal
-- Low burstiness (monotonous sentence structure)
-- Low perplexity (predictable word choices)
-- Emotional flatness (lack of emotion) — NEW
-- Vocabulary homogeneity (NEW)
-
-## Scene Styles
-
-| Scene | Style | Use Case |
-|-------|-------|----------|
-| `social` | Casual, conversational | WeChat, Weibo, Xiaohongshu |
-| `tech` | Professional but approachable | Tech blogs, documentation |
-| `formal` | Rigorous but natural | Reports, articles |
-| `chat` | Friendly, concise | Customer service, dialogue |
-
-## Writing Style Transforms (NEW in v1.1)
-
-Transform your text into different Chinese writing styles:
-
-| Style | Description | Best For |
-|-------|-------------|----------|
-| `casual` | 口语化风格 — Like chatting with friends | Social media, messaging |
-| `zhihu` | 知乎风格 — Rational, in-depth, personal opinion | Q&A platforms, thoughtful posts |
-| `xiaohongshu` | 小红书风格 — Enthusiastic, emoji-rich, product recommendations | Lifestyle sharing, product reviews |
-| `wechat` | 公众号风格 — Storytelling, engaging, relatable | WeChat articles, newsletters |
-| `academic` | 学术风格 — Rigorous but not stiff | Academic writing, research |
-| `literary` | 文艺风格 — Poetic, imagery-rich | Creative writing, essays |
-
-### Usage
-
-```bash
-# List all available styles
-python scripts/style_cn.py --list
-
-# Apply specific style
-python scripts/style_cn.py essay.txt --style zhihu -o essay_zhihu.txt
-python scripts/style_cn.py blog.txt --style xiaohongshu -o blog_xhs.txt
-
-# Combine with humanization
-python scripts/humanize_cn.py ai_text.txt --style casual -o natural.txt
+🔴 三段式套路 (2)
+   首先，值得注意的是...其次...最后
+🔴 机械连接词 (9)
+   值得注意的是, 综上所述, 总而言之...
+🔴 空洞宏大词 (8)
+   赋能, 闭环, 数字化转型...
+🟠 AI 高频词 (3)
+   助力, 彰显, 颠覆
+🟠 模板句式 (2)
+   随着...的不断发展, 在当今...时代
 ```
 
-## Examples
+## Humanization Result
 
-### Social Media Transformation
-
-**Before (AI):**
 ```
-在当今这个智慧时代，人工智能技术正在深刻地改变着软件开发的方方面面。
-首先，AI 编程助手能够显著提升代码编写效率。其次，它可以帮助开发者快速
-理解复杂的代码逻辑。最后，AI 工具在代码审查和测试方面也展现出了巨大的
-潜力。值得注意的是，我们在享受 AI 带来便利的同时，也应该保持独立思考
-的能力。
+═══ 对比结果 ═══
+原文:   100/100 [████████████████████] VERY_HIGH
+改写后:  25/100 [█████░░░░░░░░░░░░░░░] MEDIUM
+✅ 降低了 75 分
 ```
 
-**After (Human):**
-```
-AI 编程助手这两年确实火了，像 Copilot、Cursor 这些工具，写代码时自动
-补全、生成测试用例，省了不少时间。尤其是看别人的代码，以前得翻半天文档，
-现在 AI 直接给个解释，效率提升明显。
+## Writing Styles
 
-不过也有坑。有时候 AI 生成的代码看着能跑，实际逻辑有问题，调试反而更
-花时间。而且太依赖它，自己的思考能力会不会退化？这事儿得掂量掂量。
-```
+| Style | Name | Best For |
+|-------|------|----------|
+| `casual` | 口语化 | Social media, messaging |
+| `zhihu` | 知乎 | Q&A, analysis |
+| `xiaohongshu` | 小红书 | Reviews, lifestyle |
+| `wechat` | 公众号 | Newsletters, articles |
+| `academic` | 学术 | Papers, reports |
+| `literary` | 文艺 | Creative writing |
+| `weibo` | 微博 | Short posts |
 
-## Scripts
+## Customization
 
-### detect_cn.py
-Scan for AI patterns and calculate AI probability.
-
-```bash
-python scripts/detect_cn.py text.txt        # Full report
-python scripts/detect_cn.py text.txt -s     # Score only
-python scripts/detect_cn.py text.txt -j     # JSON output
-echo "文本" | python scripts/detect_cn.py   # From stdin
-```
-
-### humanize_cn.py
-Transform AI text to human-like.
-
-```bash
-python scripts/humanize_cn.py text.txt              # Basic
-python scripts/humanize_cn.py text.txt -o out.txt   # Save to file
-python scripts/humanize_cn.py text.txt --scene social  # Scene-specific
-python scripts/humanize_cn.py text.txt -a           # Aggressive mode
-```
-
-### compare_cn.py
-Compare detection scores before and after.
-
-```bash
-python scripts/compare_cn.py text.txt
-python scripts/compare_cn.py text.txt --scene tech -o clean.txt
-```
-
-### style_cn.py (NEW)
-Transform text into specific writing styles.
-
-```bash
-python scripts/style_cn.py text.txt --style zhihu -o output.txt
-python scripts/style_cn.py text.txt --style xiaohongshu -o xhs.txt
-python scripts/style_cn.py --list  # Show all available styles
-```
-
-**Available styles:** casual, zhihu, xiaohongshu, wechat, academic, literary
-
-## AI Probability Scoring
-
-| Rating | Criteria |
-|--------|----------|
-| Very High | Critical patterns present (three-part, mechanical connectors, empty words) |
-| High | >20 issues OR density >3% |
-| Medium | >10 issues OR density >1.5% |
-| Low | <10 issues AND density <1.5% |
-
-## Research Base
-
-This skill is based on comprehensive Chinese AI writing research:
-- Tencent News: "Deconstructing 'AI Flavor'"
-- 53AI: "Detection and Optimization of Article 'AI Flavor'"
-- AIGCleaner and other de-AI tools
-- Statistical analysis of major Chinese LLMs
+Edit `scripts/patterns_cn.json` to add/modify detection patterns, replacement alternatives, and scoring weights.
 
 ## License
 
 MIT
-
-## Author
-
-Created for ClawHub by voidborne-d
