@@ -28,9 +28,9 @@ def _build_templates():
     """
     templates = []
 
-    # ── 1. 通过X，Y能够Z ──
+    # ── 1. 通过X，Y能够Z（仅句首）──
     templates.append((
-        re.compile(r'通过(?P<X>[^，,。]{2,15})[，,]\s*(?P<Y>[^，,。]{2,10})能够(?P<Z>[^，,。！？]{2,20})'),
+        re.compile(r'^\s*通过(?P<X>[\u4e00-\u9fff]{2,10})[，,]\s*(?P<Y>[\u4e00-\u9fff]{2,8})能够(?P<Z>[\u4e00-\u9fff]{2,15})'),
         [
             lambda m: f'{m.group("Y")}{m.group("Z")}，靠的是{m.group("X")}',
             lambda m: f'{m.group("X")}让{m.group("Y")}得以{m.group("Z")}',
@@ -57,10 +57,9 @@ def _build_templates():
 
     # ── 4. X不仅A，还B ──
     templates.append((
-        re.compile(r'(?P<X>[^，,。]{2,15})不仅(?P<A>[^，,。]{2,25})[，,]\s*(?:还|也|更)(?P<B>[^。！？]{2,25})'),
+        re.compile(r'(?P<X>[\u4e00-\u9fff]{2,12})不仅(?P<A>[\u4e00-\u9fff]{2,20})[，,]\s*(?:还|也|更)(?P<B>[\u4e00-\u9fff]{2,20})'),
         [
-            lambda m: f'{m.group("X")}{m.group("A")}。在{m.group("B").lstrip("是为了让")}方面，也有明显进展',
-            lambda m: f'{m.group("X")}{m.group("A")}，与此同时也{m.group("B")}',
+            lambda m: f'{m.group("X")}{m.group("A")}。同时也{m.group("B")}',
         ]
     ))
 
@@ -84,9 +83,8 @@ def _build_templates():
 
     # ── 7. X为Y提供了Z ──
     templates.append((
-        re.compile(r'(?P<X>[^，,。]{2,15})为(?P<Y>[^，,。]{2,12})提供了(?P<Z>[^。！？]{2,20})'),
+        re.compile(r'(?P<X>[\u4e00-\u9fff]{2,12})为(?P<Y>[\u4e00-\u9fff]{2,10})提供了(?P<Z>[\u4e00-\u9fff]{2,15})'),
         [
-            lambda m: f'{m.group("Y")}因此有了{m.group("Z")}，这要归功于{m.group("X")}',
             lambda m: f'在{m.group("X")}的支持下，{m.group("Y")}获得了{m.group("Z")}',
         ]
     ))
@@ -109,21 +107,20 @@ def _build_templates():
         ]
     ))
 
-    # ── 10. X可以通过Y来Z ──
+    # ── 10. 通过X和Y，Z能够W（工具并列句式）──
+    # 此模板仅匹配明确的工具短词，不匹配长名词算出啊
     templates.append((
-        re.compile(r'(?P<X>[^，,。]{2,15})可以通过(?P<Y>[^，,。]{2,15})(?:来)?(?P<Z>[^，,。！？]{2,20})'),
+        re.compile(r'^\s*通过(?P<X>[\u4e00-\u9fff]{2,6})和(?P<Y>[\u4e00-\u9fff]{2,6})[，,]\s*(?P<Z>[\u4e00-\u9fff]{2,8})能够(?P<W>[\u4e00-\u9fff]{2,12})'),
         [
-            lambda m: f'借助{m.group("Y")}，{m.group("X")}能够{m.group("Z")}',
-            lambda m: f'{m.group("Y")}为{m.group("X")}{m.group("Z")}提供了可能',
+            lambda m: f'{m.group("Z")}{m.group("W")}，靠的是{m.group("X")}和{m.group("Y")}',
         ]
     ))
 
     # ── 11. X正在从Y推动Z ──
     templates.append((
-        re.compile(r'(?P<X>[^，,。]{2,15})正在从(?P<Y>[^，,。]{2,15})推动(?P<Z>[^。！？]{2,20})'),
+        re.compile(r'(?P<X>[\u4e00-\u9fff]{2,12})正在从(?P<Y>[\u4e00-\u9fff]{2,12})推动(?P<Z>[\u4e00-\u9fff]{2,15})'),
         [
             lambda m: f'在{m.group("Y")}上，{m.group("X")}持续推动着{m.group("Z")}',
-            lambda m: f'{m.group("Z")}的步伐不断加快，{m.group("X")}从{m.group("Y")}着手推进',
         ]
     ))
 
@@ -194,15 +191,18 @@ def restructure_sentences(text, strength=0.6):
 
         # 对每个句段尝试匹配模板（最多改一次）
         transformed = False
-        if segment.strip() and random.random() < strength:
+        cn_len = len(re.findall(r'[\u4e00-\u9fff]', segment))
+        if segment.strip() and cn_len >= 10 and random.random() < strength:
             for pattern, replacements in _SENTENCE_TEMPLATES:
                 m = pattern.search(segment)
                 if m:
                     repl_fn = random.choice(replacements)
                     try:
                         new_segment = segment[:m.start()] + repl_fn(m) + segment[m.end():]
-                        # 简单校验：改写后不应为空或过短
-                        if len(new_segment.strip()) >= 4:
+                        new_cn_len = len(re.findall(r'[\u4e00-\u9fff]', new_segment))
+                        # 校验：改写后长度不应偏差太大，且不为空
+                        if (len(new_segment.strip()) >= 4 and 
+                            abs(new_cn_len - cn_len) < cn_len * 0.5):
                             segment = new_segment
                             transformed = True
                     except Exception:
@@ -474,8 +474,8 @@ def deep_restructure(text, aggressive=False):
     Returns:
         深度改写后的文本
     """
-    strength = 0.75 if aggressive else 0.55
-    delete_prob = 0.7 if aggressive else 0.45
+    strength = 0.6 if aggressive else 0.4
+    delete_prob = 0.6 if aggressive else 0.35
 
     # 1. 句式结构变换
     text = restructure_sentences(text, strength=strength)
@@ -489,8 +489,9 @@ def deep_restructure(text, aggressive=False):
     # 4. AI 废话删除
     text = remove_ai_fillers(text, delete_prob=delete_prob)
 
-    # 5. 信息重排
-    text = reorder_mid_sentences(text)
+    # 5. 信息重排（仅对多段落文本生效）
+    if '\n\n' in text:
+        text = reorder_mid_sentences(text)
 
     # 清理可能产生的标点问题
     text = re.sub(r'[，,]{2,}', '，', text)
