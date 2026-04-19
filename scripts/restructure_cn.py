@@ -706,10 +706,14 @@ def remove_ai_fillers(text, delete_prob=0.5):
 # are AI fillers) and short (3-6 chars) so they count toward short_frac.
 
 _SHORT_REACTIONS_NEUTRAL = [
-    '的确。', '确实如此。', '颇有道理。', '不无道理。',
+    # D-3 cycle 29: dropped 2-char "的确" — sentence-length feature skips < 3
+    # Chinese chars so 2-char reactions don't register as "short sentences".
+    # All entries now 4-6 chars, each reaction registers properly.
+    '确实如此。', '颇有道理。', '不无道理。',
     '事出有因。', '耐人寻味。', '值得深思。', '让人深思。',
     '可见一斑。', '有一定道理。', '各有道理。', '各有说法。',
     '难以一概。', '难以断言。', '说来话长。', '一言难尽。',
+    '的确如此。', '确实是这样。',
 ]
 
 _SHORT_REACTIONS_CASUAL = [
@@ -718,7 +722,7 @@ _SHORT_REACTIONS_CASUAL = [
 ]
 
 
-def insert_short_reactions(text, target_short_frac=0.15, max_per_paragraph=1, seed=None):
+def insert_short_reactions(text, target_short_frac=0.15, max_per_paragraph=1, seed=None, min_sentences=3):
     """Inject short reaction sentences at paragraph seams where short_frac is low.
 
     Only injects when:
@@ -739,12 +743,12 @@ def insert_short_reactions(text, target_short_frac=0.15, max_per_paragraph=1, se
         random.seed(seed)
     paragraphs = text.split('\n\n')
     return '\n\n'.join(
-        _insert_reactions_in_paragraph(p, target_short_frac, max_per_paragraph)
+        _insert_reactions_in_paragraph(p, target_short_frac, max_per_paragraph, min_sentences)
         for p in paragraphs
     )
 
 
-def _insert_reactions_in_paragraph(p, target, max_per):
+def _insert_reactions_in_paragraph(p, target, max_per, min_sentences=3):
     parts = re.split(r'([。！？])', p)
     sentences = []
     i = 0
@@ -759,7 +763,7 @@ def _insert_reactions_in_paragraph(p, target, max_per):
                 sentences.append(seg)
             i += 1
 
-    if len(sentences) < 3:
+    if len(sentences) < min_sentences:
         return p
 
     cn_lens = [sum(1 for c in s if '\u4e00' <= c <= '\u9fff') for s in sentences]
@@ -960,7 +964,7 @@ def _diversify_in_paragraph(text, target_cv, target_short_frac):
 #  主入口：深度改写
 # ═══════════════════════════════════════════════════════════════════
 
-def deep_restructure(text, aggressive=False):
+def deep_restructure(text, aggressive=False, scene='general'):
     """对中文文本进行深度句级改写。
 
     按顺序执行：
@@ -973,6 +977,9 @@ def deep_restructure(text, aggressive=False):
     Args:
         text: 输入中文文本
         aggressive: 激进模式——更高的变换概率
+        scene: passed for future use; currently insert threshold stays at 3 for
+               all scenes (D-3 scene-aware attempt at cycle 29 regressed
+               general +2 / xhs +6 via indirect score paths)
 
     Returns:
         深度改写后的文本
@@ -992,11 +999,7 @@ def deep_restructure(text, aggressive=False):
     # 4. AI 废话删除
     text = remove_ai_fillers(text, delete_prob=delete_prob)
 
-    # 4b. 短句插入 — MUST run AFTER merge_short_sentences (cycle 22 bug fix:
-    # cycle 11's placement before merge caused inserted reactions to be swallowed).
-    # Inserts complete 3-6 char neutral reactions at paragraph ends to boost
-    # short_frac toward the human baseline (~25%), tackling the
-    # `low_short_sentence_fraction` detector (HC3 d=1.21).
+    # 4b. 短句插入 — MUST run AFTER merge_short_sentences (cycle 22 bug fix).
     text = insert_short_reactions(text)
 
     # 5. 信息重排（仅对多段落文本生效）

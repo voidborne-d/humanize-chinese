@@ -1199,7 +1199,7 @@ def humanize(text, scene='general', aggressive=False, seed=None):
             deep_restructure = None
     if deep_restructure:
         # Conservative keeps restructure but with aggressive=False to be gentler
-        text = deep_restructure(text, aggressive=aggressive)
+        text = deep_restructure(text, aggressive=aggressive, scene=scene)
 
     # Pass 2b: Sentence merge/split
     if config.get('merge_short', False):

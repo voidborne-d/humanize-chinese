@@ -1012,7 +1012,7 @@ def humanize_academic(text, aggressive=False, seed=None):
         except ImportError:
             deep_restructure = None
     if deep_restructure:
-        text = deep_restructure(text, aggressive=aggressive)
+        text = deep_restructure(text, aggressive=aggressive, scene='academic')
 
     # 2. Reduce connector density
     text = _reduce_connectors(text, aggressive)
