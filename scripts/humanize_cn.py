@@ -1249,8 +1249,10 @@ def humanize(text, scene='general', aggressive=False, seed=None):
     if _USE_STATS and ngram_analyze:
         stats = ngram_analyze(text)
         ppl = stats.get('perplexity', 0)
-        # Threshold: if perplexity is in the "too smooth" zone, try to improve
-        if 0 < ppl < 200 and len(text) >= 100:
+        # Threshold: if perplexity is in the "too smooth" zone, try to improve.
+        # D-5 (cycle 31): raised 200 → 350 to cover the typical humanized-output
+        # perplexity range (~250-300) where indicators still fire.
+        if 0 < ppl < 350 and len(text) >= 100:
             sentences = re.split(r'([。！？])', text)
             # Score each sentence
             sent_scores = []

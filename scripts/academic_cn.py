@@ -1079,7 +1079,7 @@ def humanize_academic(text, aggressive=False, seed=None):
     if _USE_STATS and ngram_analyze:
         stats = ngram_analyze(text)
         ppl = stats.get('perplexity', 0)
-        if 0 < ppl < 200 and count_chinese(text) >= 100:
+        if 0 < ppl < 350 and count_chinese(text) >= 100:
             sorted_phrases = sorted(ACADEMIC_REPLACEMENTS.keys(), key=len, reverse=True)
 
             def _fix_paragraph(para, rng_seed):
