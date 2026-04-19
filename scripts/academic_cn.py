@@ -529,16 +529,17 @@ def calculate_academic_score(issues):
             sev_mult = {'critical': 1.5, 'high': 1.0, 'medium': 0.6, 'low': 0.3}.get(sev, 0.6)
             raw += weight * sev_mult * min(count, 5)
     
-    # Rule-based score (cap at ~75 points)
-    rule_score = min(75, int(raw * 0.7))
-    
-    # Statistical score (up to 25 points)
+    # Rule-based score (cap at 60 — A-path 2026-04-19 cycle 20)
+    rule_score = min(60, int(raw * 0.7))
+
+    # Statistical score (cap 40 — raised from 25 after HC3 measurement showed
+    # uncapped stat Cohen's d = 1.695, cap=25 was clipping 90% of AI signal).
     stat_score = 0
     for dim, items in issues.items():
         if dim.startswith('stat_') and items:
             stat_score += STATISTICAL_WEIGHTS.get(dim, 5)
-    stat_score = min(25, stat_score)
-    
+    stat_score = min(40, stat_score)
+
     return min(100, rule_score + stat_score)
 
 

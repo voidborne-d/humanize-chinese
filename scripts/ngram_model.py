@@ -844,17 +844,13 @@ def analyze_text(text):
         'low_comma_density': (
             punct.get('comma_density', 10.0) < 4.5 and char_count >= 100
         ),
-        # High transition density — despite HC3 d = +0.62 it correlates too much
-        # with existing indicators in humans who write casual Q&A with transitions.
-        # Adding it reduced HC3 gap 9.9 → 9.4 and avg delta 4.1 → 3.1 (cycle 8
-        # experiment). Disabled but function + list kept for future humanize-side
-        # usage (suppressing transitions in rewritten output is the real win path).
+        # High transition density — tried at cap 40 cycle A-2, marginal gap gain
+        # (+0.6) but 1pt correct-rate drop. Still disabled. Humanize-side work
+        # (cycle 12/13 transition replacements) already captures this signal.
         'high_transition_density': False,
-        # DetectGPT-lite curvature (HC3 d=0.77). Disabled cycle 10 — despite strong
-        # Cohen's d, adding as indicator marginally hurt HC3 (73% → 72% correct rate).
-        # Root cause: stat score already caps at 25, and ~10% humans also get flagged,
-        # bumping human avg proportionally more than cap-saturated AI avg. Function
-        # kept for future Ghostbuster-style LR ensemble where weak signals combine.
+        # DetectGPT-lite curvature — tried at cap 40 cycle A-2, didn't help
+        # (correlates with transition density, noise > signal at this stage).
+        # Disabled again, function kept.
         'high_curvature': False,
     }
 

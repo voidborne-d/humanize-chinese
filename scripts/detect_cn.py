@@ -496,15 +496,19 @@ def calculate_score(issues, metrics):
             # Diminishing returns for repeated items
             raw += weight * min(count, 5)
     
-    # Rule-based score (cap contribution at ~75 points)
-    rule_score = min(75, int(raw * 1.0))
-    
-    # Statistical score (up to 25 points)
+    # Rule-based score (cap contribution at 60 points — was 75, reduced so stat
+    # has more headroom). HC3 measurement showed rule raw max = 33 for AI samples,
+    # so 60 is still ample.
+    rule_score = min(60, int(raw * 1.0))
+
+    # Statistical score (up to 40 points — was 25, raised after HC3 measurement
+    # showed uncapped stat Cohen's d = 1.695 but cap=25 clipped 90% of AI samples,
+    # collapsing gap from 25.3 to 15.7). Cap=40 captures 87% of max signal.
     stat_score = 0
     for category, items in issues.items():
         if category.startswith('stat_') and items:
             stat_score += STATISTICAL_WEIGHTS.get(category, 5)
-    stat_score = min(25, stat_score)
+    stat_score = min(40, stat_score)
     
     score = rule_score + stat_score
     
