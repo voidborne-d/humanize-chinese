@@ -384,6 +384,51 @@ def _build_templates():
         ]
     ))
 
+    # ── 41. 在X的Y下，Z（背景/情况/影响/指导/推动）── D-2 / cycle 42
+    templates.append((
+        re.compile(r'在(?P<X>[^，,。]{2,15})的(?P<Y>背景|情况|影响|指导|推动|框架)下[，,]\s*(?P<Z>[^。！？]{5,40})'),
+        [
+            lambda m: f'{m.group("X")}的{m.group("Y")}下，{m.group("Z")}',
+            lambda m: f'{m.group("Z")}——这正是{m.group("X")}的{m.group("Y")}造成的',
+        ]
+    ))
+
+    # ── 42. 研究表明/研究发现 X ── D-2 / cycle 42
+    templates.append((
+        re.compile(r'^(?:研究|数据|调查|分析)(?:表明|显示|发现|揭示|指出)[，,]?\s*(?P<X>[^。！？]{5,40})'),
+        [
+            lambda m: f'有研究显示，{m.group("X")}',
+            lambda m: f'实际数据里，{m.group("X")}',
+        ]
+    ))
+
+    # ── 43. X取决于Y ── D-2 / cycle 42（HC3-mined 高频）
+    templates.append((
+        re.compile(r'(?P<X>[^，,。]{2,20})取决于(?P<Y>[^。！？]{2,25})'),
+        [
+            lambda m: f'{m.group("X")}要看{m.group("Y")}',
+            lambda m: f'{m.group("X")}跟{m.group("Y")}有关',
+        ]
+    ))
+
+    # ── 44. X将/已经成为Y ── D-2 / cycle 42
+    templates.append((
+        re.compile(r'(?P<X>[^，,。]{2,15})(?:将|已经|正在|逐渐)成为(?P<Y>[^。！？]{2,25})'),
+        [
+            lambda m: f'{m.group("X")}正转变为{m.group("Y")}',
+            lambda m: f'{m.group("X")}这条路，通向{m.group("Y")}',
+        ]
+    ))
+
+    # ── 45. 通过对X的Y，Z（academic analysis 套路）── D-2 / cycle 42
+    templates.append((
+        re.compile(r'^通过对(?P<X>[^，,。]{2,20})的(?P<Y>分析|研究|探讨|考察|梳理)[，,]\s*(?P<Z>[^。！？]{5,40})'),
+        [
+            lambda m: f'梳理{m.group("X")}后发现，{m.group("Z")}',
+            lambda m: f'把{m.group("X")}{m.group("Y")}一番，{m.group("Z")}',
+        ]
+    ))
+
     return templates
 
 
