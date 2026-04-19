@@ -786,7 +786,7 @@ def _inject_hedging(text, aggressive=False):
     result_paragraphs = []
     injected = 0
     total_sents = len(split_sentences(text))
-    max_inject = max(2, total_sents // 8) if not aggressive else max(3, total_sents // 5)
+    max_inject = max(2, total_sents // 6) if not aggressive else max(3, total_sents // 5)
 
     for para in paragraphs:
         sentences = split_sentences(para)
@@ -805,7 +805,7 @@ def _inject_hedging(text, aggressive=False):
                             sent = sent.replace(cm, hedge, 1)
                             injected += 1
                             break
-            elif not has_hedging and random.random() < (0.08 if not aggressive else 0.15) and injected < max_inject:
+            elif not has_hedging and random.random() < (0.12 if not aggressive else 0.15) and injected < max_inject:
                 # Don't inject hedging right after structural words
                 skip_starters = ['首先', '其次', '最后', '第一', '第二', '第三']
                 starts_structural = any(sent.strip().startswith(s) for s in skip_starters)
@@ -830,7 +830,7 @@ def _add_author_voice(text, aggressive=False):
     (after period, newline, or at the very beginning)."""
     impersonal = ['研究表明', '研究发现', '研究显示', '研究指出', '分析表明']
     replaced = 0
-    max_replace = 3 if not aggressive else 5
+    max_replace = 4 if not aggressive else 5
 
     for phrase in impersonal:
         # Only replace at natural sentence boundaries
@@ -894,7 +894,7 @@ def _reduce_connectors(text, aggressive=False):
     # Only remove some, not all — keep academic coherence
     removable = ['此外，', '另外，', '与此同时，', '不仅如此，', '事实上，', '实际上，']
     removed = 0
-    max_remove = 3 if not aggressive else 6
+    max_remove = 5 if not aggressive else 6
 
     for conn in removable:
         while conn in text and removed < max_remove:
@@ -1042,14 +1042,14 @@ def humanize_academic(text, aggressive=False, seed=None):
     # ACADEMIC_BLACKLIST_CANDIDATES (施用/本事/拉高 etc.) to keep the output readable
     # as an academic paper.
     if reduce_high_freq_bigrams:
-        bigram_strength = 0.5 if aggressive else 0.3
+        bigram_strength = 0.5 if aggressive else 0.4
         text = reduce_high_freq_bigrams(text, strength=bigram_strength, scene='academic')
     
     # Strategy 2 & 3: Noise injection (skipped with --no-noise)
     if _USE_NOISE:
         # Strategy 3: Noise expression injection (academic style — restrained)
         if inject_noise_expressions:
-            noise_density = 0.2 if aggressive else 0.1
+            noise_density = 0.2 if aggressive else 0.15
             text = inject_noise_expressions(text, density=noise_density, style='academic')
         
         # Strategy 2: Sentence length randomization
