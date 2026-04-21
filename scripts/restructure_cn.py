@@ -63,9 +63,9 @@ def _build_templates():
         ]
     ))
 
-    # ── 5. X对Y具有Z意义 ──
+    # ── 5. X对Y具有Z意义 ── (negative lookahead on 于 to avoid "对于" split)
     templates.append((
-        re.compile(r'(?P<X>[^，,。]{2,15})对(?P<Y>[^，,。]{2,12})具有(?P<Z>[^，,。]{1,10})意义'),
+        re.compile(r'(?P<X>[^，,。]{2,15})对(?!于)(?P<Y>[^，,。]{2,12})具有(?P<Z>[^，,。]{1,10})意义'),
         [
             lambda m: f'从{m.group("Y")}的角度看，{m.group("X")}的{m.group("Z")}意义值得关注',
             lambda m: f'{m.group("X")}之于{m.group("Y")}，有着{m.group("Z")}意义',
@@ -159,9 +159,9 @@ def _build_templates():
         ]
     ))
 
-    # ── 16. X对Y产生了重要影响 ──
+    # ── 16. X对Y产生了重要影响 ── (negative lookahead on 于)
     templates.append((
-        re.compile(r'(?P<X>[^，,。]{2,15})对(?P<Y>[^，,。]{2,12})产生了(?:重要|深远|显著|明显)?影响'),
+        re.compile(r'(?P<X>[^，,。]{2,15})对(?!于)(?P<Y>[^，,。]{2,12})产生了(?:重要|深远|显著|明显)?影响'),
         [
             lambda m: f'{m.group("X")}对{m.group("Y")}的影响不容忽视',
             lambda m: f'{m.group("Y")}受到{m.group("X")}的牵动',
