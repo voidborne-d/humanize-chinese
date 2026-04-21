@@ -103,9 +103,35 @@ def load_hc3(path, n=50, source_filter=None, min_chars=100, seed=42):
     return samples
 
 
-def score_text(text):
+_LR_AVAILABLE = None
+
+def _have_lr():
+    global _LR_AVAILABLE
+    if _LR_AVAILABLE is None:
+        try:
+            from ngram_model import compute_lr_score
+            from ngram_model import _load_lr_coef
+            _LR_AVAILABLE = _load_lr_coef() is not None
+        except Exception:
+            _LR_AVAILABLE = False
+    return _LR_AVAILABLE
+
+
+def score_text(text, mode='fused'):
+    """Score text. mode in {'fused', 'lr', 'rule'}.
+    Fused = 0.2*rule + 0.8*LR (default)."""
     issues, metrics = detect_patterns(text)
-    return calculate_score(issues, metrics), issues, metrics
+    rule = calculate_score(issues, metrics)
+    if mode == 'rule' or not _have_lr():
+        return rule, issues, metrics
+    from ngram_model import compute_lr_score
+    lr_r = compute_lr_score(text)
+    if lr_r is None:
+        return rule, issues, metrics
+    if mode == 'lr':
+        return lr_r['score'], issues, metrics
+    # default: fused
+    return round(0.2 * rule + 0.8 * lr_r['score']), issues, metrics
 
 
 def count_paragraphs(text):
@@ -127,20 +153,20 @@ def find_repeat_clauses(text, min_len=10, max_check=50):
     return dupes
 
 
-def run_one(sample, mode='humanize'):
+def run_one(sample, mode='humanize', score_mode='fused'):
     """Run detect on both answers, humanize the ChatGPT answer, detect again.
 
     Returns dict of per-sample metrics.
     """
-    human_score, _, _ = score_text(sample['human_answer'])
-    chatgpt_score, _, _ = score_text(sample['chatgpt_answer'])
+    human_score, _, _ = score_text(sample['human_answer'], mode=score_mode)
+    chatgpt_score, _, _ = score_text(sample['chatgpt_answer'], mode=score_mode)
 
     original = sample['chatgpt_answer']
     if mode == 'academic':
         humanized = humanize_academic(original, aggressive=False, seed=42)
     else:
         humanized = humanize_general(original, scene='general', aggressive=False, seed=42)
-    humanized_score, _, _ = score_text(humanized)
+    humanized_score, _, _ = score_text(humanized, mode=score_mode)
 
     paragraphs_before = count_paragraphs(original)
     paragraphs_after = count_paragraphs(humanized)
@@ -272,6 +298,8 @@ def main():
     parser.add_argument('--verbose', '-v', action='store_true',
                        help='每个样本逐条打印')
     parser.add_argument('--seed', type=int, default=42, help='随机种子')
+    parser.add_argument('--mode', default='fused', choices=['fused', 'lr', 'rule'],
+                        help='score mode (default: fused = 0.2*rule + 0.8*LR)')
     args = parser.parse_args()
 
     if args.cilin:
@@ -285,7 +313,7 @@ def main():
     mode = 'academic' if args.academic else 'humanize'
     results = []
     for i, sample in enumerate(samples):
-        r = run_one(sample, mode=mode)
+        r = run_one(sample, mode=mode, score_mode=args.mode)
         results.append(r)
         if args.verbose:
             print(f'[{i+1}/{len(samples)}] {r["source"]:12s} '
