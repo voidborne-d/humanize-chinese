@@ -1047,34 +1047,44 @@ LR_FEATURE_NAMES = (
 )
 
 
-_LR_COEF_CACHE = None
+_LR_COEF_CACHE = {}
 _LR_COEF_FILE = os.path.join(SCRIPT_DIR, 'lr_coef_cn.json')
+_LR_COEF_ACADEMIC_FILE = os.path.join(SCRIPT_DIR, 'lr_coef_academic.json')
 
 
-def _load_lr_coef(path=None):
-    """Load LR coefficients + scaler stats from JSON. Cached."""
-    global _LR_COEF_CACHE
-    path = path or _LR_COEF_FILE
-    if _LR_COEF_CACHE is not None and _LR_COEF_CACHE.get('_path') == path:
-        return _LR_COEF_CACHE
+def _load_lr_coef(path=None, scene='general'):
+    """Load LR coefficients + scaler stats from JSON. Cached per file.
+
+    scene: 'general' -> lr_coef_cn.json, 'academic' -> lr_coef_academic.json.
+    Falls back to general if academic file missing.
+    """
+    if path is None:
+        if scene == 'academic' and os.path.exists(_LR_COEF_ACADEMIC_FILE):
+            path = _LR_COEF_ACADEMIC_FILE
+        else:
+            path = _LR_COEF_FILE
+    if path in _LR_COEF_CACHE:
+        return _LR_COEF_CACHE[path]
     if not os.path.exists(path):
-        _LR_COEF_CACHE = None
+        _LR_COEF_CACHE[path] = None
         return None
     import json
     with open(path, encoding='utf-8') as f:
         data = json.load(f)
     data['_path'] = path
-    _LR_COEF_CACHE = data
+    _LR_COEF_CACHE[path] = data
     return data
 
 
-def compute_lr_score(text_or_analysis, coef_path=None):
-    """Score text via LR ensemble (F-path). Returns dict with p_ai, score_0_100,
-    and feature contributions for diagnostics.
+def compute_lr_score(text_or_analysis, coef_path=None, scene='general'):
+    """Score text via LR ensemble. Returns dict with p_ai, score_0_100,
+    and feature contributions.
 
-    If the coef file is absent (not trained yet) returns None.
+    scene: 'general' (default) uses lr_coef_cn.json; 'academic' uses
+    lr_coef_academic.json when present. Explicit coef_path overrides scene.
+    Returns None if the requested coef file is absent.
     """
-    coef = _load_lr_coef(coef_path)
+    coef = _load_lr_coef(coef_path, scene=scene)
     if coef is None:
         return None
 

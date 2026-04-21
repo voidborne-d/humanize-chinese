@@ -716,6 +716,8 @@ def main():
                         help='仅 LR ensemble 打分（诊断用）')
     parser.add_argument('--rule-only', action='store_true',
                         help='仅 rule+stat 打分（legacy 模式，忽略 LR 系数）')
+    parser.add_argument('--scene', default='general', choices=['general', 'academic'],
+                        help='LR 场景（academic 自动用 lr_coef_academic.json）')
 
     args = parser.parse_args()
     
@@ -745,7 +747,7 @@ def main():
         from ngram_model import compute_lr_score
     except ImportError:
         from scripts.ngram_model import compute_lr_score
-    lr_result = None if args.rule_only else compute_lr_score(text)
+    lr_result = None if args.rule_only else compute_lr_score(text, scene=args.scene)
 
     if args.rule_only or lr_result is None:
         score = rule_score

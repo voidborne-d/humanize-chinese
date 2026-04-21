@@ -1017,7 +1017,7 @@ def humanize_academic(text, aggressive=False, seed=None, best_of_n=DEFAULT_BEST_
             s = base_seed + i
             out = humanize_academic(text, aggressive=aggressive, seed=s,
                                     best_of_n=None)
-            lr = compute_lr_score(out)
+            lr = compute_lr_score(out, scene='academic')
             score = lr['score'] if lr else 50
             candidates.append((score, s, out))
         candidates.sort(key=lambda x: x[0])
