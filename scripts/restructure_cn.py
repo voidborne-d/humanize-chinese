@@ -877,7 +877,7 @@ def boost_comma_density(text, target=4.7):
     return ''.join(out)
 
 
-def insert_short_reactions(text, target_short_frac=0.15, max_per_paragraph=1, seed=None, min_sentences=3, scene='general'):
+def insert_short_reactions(text, target_short_frac=None, max_per_paragraph=1, seed=None, min_sentences=3, scene='general'):
     """Inject short reaction sentences at paragraph seams where short_frac is low.
 
     Only injects when:
@@ -896,6 +896,8 @@ def insert_short_reactions(text, target_short_frac=0.15, max_per_paragraph=1, se
     """
     if seed is not None:
         random.seed(seed)
+    if target_short_frac is None:
+        target_short_frac = 0.22 if scene == 'academic' else 0.15
     paragraphs = text.split('\n\n')
     return '\n\n'.join(
         _insert_reactions_in_paragraph(p, target_short_frac, max_per_paragraph, min_sentences, scene)
