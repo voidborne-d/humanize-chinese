@@ -1152,7 +1152,7 @@ def _estimate_source_aiscore(text):
         return None
 
 
-def humanize(text, scene='general', aggressive=False, seed=None):
+def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=None):
     """Apply all humanization transformations in order.
 
     Graduated intensity based on source AI-score (pre-detect):
@@ -1161,10 +1161,32 @@ def humanize(text, scene='general', aggressive=False, seed=None):
       - score >= 40 (full): entire pipeline including noise injection
     Aggressive flag forces 'full' tier.
 
+    best_of_n: if set to an integer, runs humanize N times with different seeds
+    and returns the output that scores lowest on the LR ensemble (requires
+    scripts/lr_coef_cn.json). Useful when minimizing LR score matters more
+    than latency.
+
     Rationale: HC3 benchmark showed that full pipeline on already-clean text
     (source score < 15) adds spurious AI patterns (段落均匀/熵低) via noise
     injection, sometimes INCREASING detected score. Tiered intensity avoids this.
     """
+    if best_of_n is not None and best_of_n > 1:
+        try:
+            from ngram_model import compute_lr_score
+        except ImportError:
+            from scripts.ngram_model import compute_lr_score
+        base_seed = seed if seed is not None else 42
+        candidates = []
+        for i in range(best_of_n):
+            s = base_seed + i
+            out = humanize(text, scene=scene, aggressive=aggressive,
+                           seed=s, best_of_n=None)
+            lr = compute_lr_score(out)
+            score = lr['score'] if lr else 50
+            candidates.append((score, s, out))
+        candidates.sort(key=lambda x: x[0])
+        return candidates[0][2]
+
     if seed is not None:
         random.seed(seed)
 
@@ -1302,6 +1324,8 @@ def main():
     parser.add_argument('--style', help='写作风格 (调用 style_cn.py)')
     parser.add_argument('-a', '--aggressive', action='store_true', help='激进模式')
     parser.add_argument('--seed', type=int, help='随机种子（可复现）')
+    parser.add_argument('--best-of-n', type=int, default=None, metavar='N',
+                        help='运行 N 次 humanize 取 LR 分数最低的那次（需要 lr_coef_cn.json，N 倍延迟）')
     parser.add_argument('--no-stats', action='store_true',
                        help='跳过统计优化（困惑度反馈），回退到纯规则替换')
     parser.add_argument('--no-noise', action='store_true',
@@ -1341,7 +1365,8 @@ def main():
         sys.exit(1)
     
     # Humanize
-    result = humanize(text, args.scene, args.aggressive, args.seed)
+    result = humanize(text, args.scene, args.aggressive, args.seed,
+                       best_of_n=args.best_of_n)
     
     # Apply style if specified
     if args.style:
