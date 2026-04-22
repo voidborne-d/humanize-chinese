@@ -1015,6 +1015,43 @@ def reduce_punctuation(text):
     
     return text
 
+def cap_transition_density(text, target=6.0):
+    """Drop clause-initial transition phrases until density <= target.
+
+    Runs AFTER all other humanize passes. Keeps transitions that are
+    low-density already; removes excess probabilistically. Detect threshold
+    fires at density > 8 per 1000 chars, so target 6 gives margin.
+    """
+    try:
+        from ngram_model import _TRANSITION_PHRASES
+    except ImportError:
+        from scripts.ngram_model import _TRANSITION_PHRASES
+
+    cn_chars = sum(1 for c in text if '\u4e00' <= c <= '\u9fff')
+    if cn_chars < 100:
+        return text
+
+    hits = sum(text.count(p) for p in _TRANSITION_PHRASES)
+    density = hits / cn_chars * 1000
+    if density <= target:
+        return text
+
+    remove_prob = min(0.9, (density - target) / density)
+
+    for phrase in sorted(_TRANSITION_PHRASES, key=len, reverse=True):
+        esc = re.escape(phrase)
+        pattern = re.compile(r'(^|[。！？\n])(' + esc + r')([，,、])?')
+
+        def sub(m):
+            if random.random() < remove_prob:
+                return m.group(1)
+            return m.group(0)
+
+        text = pattern.sub(sub, text)
+
+    return text
+
+
 def inject_sentence_particles(text, rate=0.15):
     """Append casual sentence-ending particles (吧/嘛/呗) to random statements.
 
@@ -1267,6 +1304,11 @@ def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAU
         text = inject_noise_expressions(text, density=noise_density, style='general')
         text = randomize_sentence_lengths(text, aggressive=aggressive, seed=seed)
     
+    # Final transition cap — AI overuses 首先/然而/此外/因此 etc, detect fires
+    # density > 8/1000 chars. Cap at 6 to leave margin. Preserves text that's
+    # already under the threshold.
+    text = cap_transition_density(text, target=6.0)
+
     # Clean up artifacts
     text = re.sub(r'[，,]{2,}', '，', text)  # Remove double commas
     text = re.sub(r'[。]{2,}', '。', text)    # Remove double periods
