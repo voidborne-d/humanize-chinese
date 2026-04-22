@@ -1212,7 +1212,6 @@ LR_FEATURE_NAMES = (
     'wiki_vs_human',        # F-3 2026-04-22, HC3 d=1.58
     'wiki_vs_primary',      # F-3 2026-04-22, HC3 d=1.13
     'news_vs_human',        # F-11 2026-04-22, HC3 d=1.20 (on 10-category news corpus)
-    'news_vs_wiki',         # F-11 2026-04-22, HC3 d=0.27
 )
 
 
@@ -1340,7 +1339,6 @@ def extract_feature_vector(text_or_analysis):
         float(wiki.get('wiki_vs_human') or 0.0),
         float(wiki.get('wiki_vs_primary') or 0.0),
         float(news.get('news_vs_human') or 0.0),
-        float(news.get('news_vs_wiki') or 0.0),
     ]
     return vec, list(LR_FEATURE_NAMES)
 
