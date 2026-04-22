@@ -96,6 +96,29 @@ def _trigram_log_prob(c1, c2, c3, freq):
     return log2(p_interp) if p_interp > 0 else -20.0
 
 
+def compute_unigram_perplexity(text):
+    """Character unigram perplexity. AI Chinese tends to concentrate more on
+    common characters (lower uni ppl) than human writing.
+
+    Returns float or 0.0 if text too short.
+    """
+    freq = _load_freq()
+    chars = _extract_chinese(text)
+    if len(chars) < 5:
+        return 0.0
+    unigrams = freq['unigrams']
+    total = sum(unigrams.values()) or 1
+    V = max(len(unigrams), 1000)
+    k = 0.01
+    avg_lp = 0.0
+    for c in chars:
+        count = unigrams.get(c, 0)
+        prob = (count + k) / (total + k * V)
+        avg_lp += log2(prob) if prob > 0 else -20.0
+    avg_lp /= len(chars)
+    return 2 ** (-avg_lp)
+
+
 def compute_perplexity(text, window_size=0):
     """
     Compute character-level perplexity of Chinese text using interpolated trigram model.
@@ -886,6 +909,12 @@ def analyze_text(text):
     # Char-level MATTR (E-8, arxiv 2507.15092 PATTR-lite)
     char_mattr = compute_char_mattr(text, window=100)
 
+    # F-path multi-scale: unigram ppl and its ratio to trigram ppl.
+    # HC3 pilot: uni_ppl alone d=0.08, uni/tri_ratio d=0.31 (AI concentrates
+    # common chars differently from humans, most visible in the ratio).
+    uni_ppl = compute_unigram_perplexity(text)
+    uni_tri_ratio = uni_ppl / ppl_result['perplexity'] if ppl_result.get('perplexity', 0) > 0 else 0.0
+
     # Thresholds — conservative, designed for character-level n-gram model.
     #
     # With a small corpus-based model, perplexity direction depends on text style.
@@ -1001,6 +1030,8 @@ def analyze_text(text):
         'curv': curv,
         'bino': bino,
         'char_mattr': char_mattr,
+        'uni_ppl': uni_ppl,
+        'uni_tri_ratio': uni_tri_ratio,
         'indicators': indicators,
         'details': {
             'perplexity_result': {
@@ -1044,6 +1075,7 @@ LR_FEATURE_NAMES = (
     'trans_density',
     'curv_mean',
     'bino_lp_diff',
+    'uni_tri_ratio',   # F-2 multi-scale ratio, HC3 d=0.31
 )
 
 
@@ -1163,6 +1195,7 @@ def extract_feature_vector(text_or_analysis):
         float(trans.get('density') or 0.0),
         float(curv.get('curvature_mean') or 0.0),
         float(bino.get('mean_lp_diff') or 0.0),
+        float(analysis.get('uni_tri_ratio') or 0.0),
     ]
     return vec, list(LR_FEATURE_NAMES)
 
