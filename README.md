@@ -174,6 +174,25 @@ cp humanize-chinese/claude-code/*.md YOUR_PROJECT/.claude/commands/
 ./humanize compare text.txt -a           # 对比
 ```
 
+### 📚 长篇小说 / 博客（--scene novel）
+
+默认 detector 用 HC3 短问答校准，对 GPT-4o/Claude/Gemini 写的长篇小说会欠估。切 `--scene novel` 用专门在长篇（AI 139 样本 + 人类 300 样本）训的 LR：
+
+```bash
+python scripts/detect_cn.py 章节.txt --scene novel    # 推荐给小说/长博客/散文
+python scripts/detect_cn.py 新闻.txt                  # 默认 scene，短问答/通用
+python scripts/detect_cn.py 论文.txt --scene academic  # 学术论文
+```
+
+实测对照（3 篇 Gemini 新写的 3000-4700 字小说章节）：
+
+| 模式 | 样本1 | 样本2 | 样本3 | 均值 |
+|------|-------|-------|-------|------|
+| 默认 scene（HC3 校准） | 56 | 42 | 57 | 52 |
+| **--scene novel**（长篇校准） | **73** | **73** | **69** | **72** |
+
+默认模式对现代 LLM 的长篇小说系统性欠估 20 分左右，切 `--scene novel` 可修正。
+
 ### 🎨 风格转换
 
 ```bash
@@ -191,7 +210,7 @@ cp humanize-chinese/claude-code/*.md YOUR_PROJECT/.claude/commands/
 
 | 功能 | 说明 |
 |------|------|
-| 🔍 AI 检测 | 20+ 规则维度 + **HC3-校准**的 8 个统计特征（含 d=1.22 的句长 CV 和 d=1.21 的短句占比），0-100 评分 |
+| 🔍 AI 检测 | 20+ 规则维度 + **三路 LR 分场景校准**（general / academic / novel），0-100 评分 |
 | 📈 统计层 | 字符级 trigram 困惑度 + DivEye 惊奇度 + GLTR rank 分桶 + 句长 burstiness + 标点密度 |
 | ✏️ 智能改写 | 困惑度引导选词 + 低频 bigram 注入 + 短句插入 + 句长随机化 + **40 paraphrase 模板** + 三档自适应强度 |
 | 🎓 学术降重 | 10 维度检测（含扩散度）+ **126 条学术替换** + 独立 picker 策略，针对知网/维普/万方 |
