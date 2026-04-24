@@ -509,6 +509,13 @@ _NOVEL_ARTIFACT_PATTERNS = (
 # (### 故事梗概 / #### 正文 etc.). Safe to strip whole paragraphs.
 _NOVEL_MARKDOWN_HEADER = re.compile(r'^\s*#{1,4}\s+')
 
+# Bullet-list opener used in AI synopsis scaffolding.
+# Example: "- **秘境探险**：筑基期修士..."
+_NOVEL_BULLET_OPENER = re.compile(r'^\s*[-\*]\s+\*\*[^\*]+\*\*[:：]')
+
+# Markdown horizontal rule as a standalone paragraph.
+_NOVEL_HRULE = re.compile(r'^\s*(?:---+|\*\*\*+|===+)\s*$')
+
 
 def transform_novel(text):
     """长篇小说风格：去 AI 味但不加口语/emoji/hashtag。
@@ -535,13 +542,23 @@ def transform_novel(text):
 
         # Strip markdown section headers — drop line, keep remaining body
         if _NOVEL_MARKDOWN_HEADER.match(stripped):
-            # Drop the header line, keep remainder
             lines = stripped.split('\n', 1)
             if len(lines) == 1:
                 continue  # entire paragraph was just the header
             stripped = lines[1].strip()
             if not stripped:
                 continue
+
+        # Drop horizontal rule paragraphs (--- / *** / ===) — AI adds
+        # these as section dividers in synopsis scaffolding.
+        if _NOVEL_HRULE.match(stripped):
+            continue
+
+        # Drop synopsis bullet paragraphs like "- **秘境探险**：筑基期修士..."
+        # These are AI's pre-writing outline, not story body. Story
+        # paragraphs don't open with "- **X**：" pattern.
+        if _NOVEL_BULLET_OPENER.match(stripped):
+            continue
 
         # Drop paragraphs that look like AI meta-commentary —
         # head contains artifact pattern AND paragraph is short (<300).
