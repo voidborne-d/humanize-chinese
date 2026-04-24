@@ -884,6 +884,17 @@ def boost_comma_density(text, target=4.7):
     return ''.join(out)
 
 
+def _dialogue_density(text):
+    """Fraction of chars inside quoted dialogue. AI novels have 29% mean,
+    academic/news/blog under 11%. Threshold 0.08 flags narrative text.
+    Chinese fiction uses curly “” or corner 「」 brackets, not ASCII "."""
+    n = 0
+    for p in (r'“[^“”]{3,}?”', r'「[^「」]{3,}?」'):
+        for m in re.findall(p, text):
+            n += len(m)
+    return n / max(1, len(text))
+
+
 def insert_short_reactions(text, target_short_frac=None, max_per_paragraph=1, seed=None, min_sentences=3, scene='general'):
     """Inject short reaction sentences at paragraph seams where short_frac is low.
 
@@ -903,6 +914,12 @@ def insert_short_reactions(text, target_short_frac=None, max_per_paragraph=1, se
     """
     if seed is not None:
         random.seed(seed)
+    # Narrative guard: "颇有道理/事出有因" reactions fit essay/opinion text but
+    # are jarring in fiction with heavy dialogue. Skip when dialogue density
+    # is high. Threshold 0.08 matches novel/review register without blocking
+    # essay-style text that happens to quote a source.
+    if _dialogue_density(text) >= 0.08:
+        return text
     if target_short_frac is None:
         target_short_frac = 0.22 if scene == 'academic' else 0.15
     paragraphs = text.split('\n\n')
