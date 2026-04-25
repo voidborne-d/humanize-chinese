@@ -153,6 +153,42 @@ def find_repeat_clauses(text, min_len=10, max_check=50):
     return dupes
 
 
+# Grammar/register defects mirror the longform benchmark — these are bugs the
+# cycle 22-34 J-path sweep already eliminated; the metric guards against
+# regressions if a future change re-introduces any of them.
+_DEFECT_PATTERNS = (
+    (r'地地', 'doubled_di'),
+    (r'的的', 'doubled_de'),
+    (r'是是', 'doubled_shi'),
+    (r'的地', 'mixed_de_di'),
+    (r'可以地', 'awkward_keyi_di'),
+    (r'有办法地', 'awkward_youbanfa_di'),
+    (r'有效地能', 'inverted_youxiao_neng'),
+    (r'跟进着', 'invalid_genjin_zhe'),
+    (r'留着神', 'typo_liuzhe_shen'),
+    (r'在[一-鿿]{1,4}左右下', 'idiom_break_yingxiang_zuoyou'),
+    (r'案[察觉识看][觉破察出]场', 'idiom_break_anfa_xianchang'),
+    (r'阵地地位', 'template13_zhendi_diwei'),
+    (r'至关关键', 'idiom_break_zhiguan_zhongyao'),
+    (r'最最要紧', 'doubled_zui'),
+    (r'到到头来', 'doubled_dao'),
+    (r'在在', 'doubled_zai'),
+    (r'市场场景', 'doubled_chang'),
+    (r'可以以', 'doubled_yi'),
+)
+
+
+def _count_grammar_defects(humanized, source):
+    """Count humanize-introduced grammar defect patterns (vs source baseline)."""
+    total = 0
+    for pattern, _ in _DEFECT_PATTERNS:
+        n_in = len(re.findall(pattern, source))
+        n_out = len(re.findall(pattern, humanized))
+        if n_out > n_in:
+            total += (n_out - n_in)
+    return total
+
+
 def run_one(sample, mode='humanize', score_mode='fused'):
     """Run detect on both answers, humanize the ChatGPT answer, detect again.
 
@@ -172,6 +208,7 @@ def run_one(sample, mode='humanize', score_mode='fused'):
     paragraphs_after = count_paragraphs(humanized)
     length_ratio = len(humanized) / len(original) if len(original) else 0
     duplicates = find_repeat_clauses(humanized)
+    grammar_defects = _count_grammar_defects(humanized, original)
 
     return {
         'source': sample['source'],
@@ -185,6 +222,7 @@ def run_one(sample, mode='humanize', score_mode='fused'):
         'length_ratio': length_ratio,
         'duplicate_count': len(duplicates),
         'duplicates': duplicates[:3],
+        'grammar_defects': grammar_defects,
     }
 
 
@@ -245,6 +283,15 @@ def summarize(results, mode):
                 sum(r['length_ratio'] for r in results) / n, 3
             ),
             'samples_with_duplicates': sum(1 for r in results if r['duplicate_count']),
+            # Hard-floor metric: humanize-introduced grammar defects (doubled
+            # chars / typos / idiom corruption / invalid transitions). Cycle
+            # 22-34 J-path sweep brought this to 0; metric guards regressions.
+            'grammar_defects_count': sum(
+                r.get('grammar_defects', 0) for r in results
+            ),
+            'grammar_defects_samples': sum(
+                1 for r in results if r.get('grammar_defects', 0) > 0
+            ),
         },
         'by_source': source_summary,
     }
@@ -272,6 +319,10 @@ def format_text_report(summary):
     lines.append(f'  段落保留率: {sh["paragraph_preserved_rate"] * 100:.1f}%')
     lines.append(f'  平均长度比 (改写后/原文): {sh["avg_length_ratio"]}')
     lines.append(f'  有重复子句的样本: {sh["samples_with_duplicates"]}')
+    gd_count = sh.get('grammar_defects_count', 0)
+    gd_samples = sh.get('grammar_defects_samples', 0)
+    lines.append(f'  grammar defects (humanize-introduced): {gd_count} 处 in {gd_samples} 样本'
+                 f' {"✓" if gd_count == 0 else "⚠"}')
     lines.append('')
     lines.append('── 按来源 ──')
     for src, info in summary['by_source'].items():
