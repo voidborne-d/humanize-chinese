@@ -325,15 +325,36 @@ ACADEMIC_BLACKLIST_CANDIDATES = {
 }
 
 
+# Novel/fiction register: a subset of ACADEMIC_BLACKLIST_CANDIDATES still
+# applies to 3rd-person 玄幻/武侠/小说 prose, but several entries are
+# narrative-friendly verbs ('察觉'/'识破') that academic writing rejects yet
+# read naturally in fiction. Carve those out so novel mode keeps useful
+# perplexity-boosting substitutes while still stripping colloquial ones
+# ('搞'/'拉高'/'业已') that break narrative register.
+NOVEL_BLACKLIST_CANDIDATES = ACADEMIC_BLACKLIST_CANDIDATES - {
+    # Action/perception verbs that fiction uses freely
+    '觉察', '察觉', '识破', '看出', '拆解',
+    # 海量/眼下 are 武侠/玄幻 idioms ("海量灵气" / "眼下危机")
+    '海量', '眼下',
+    # 古风 register friendly
+    '宛若',
+    # Investigation verbs OK in narrative ("探究秘境奥秘")
+    '探究', '剖析',
+}
+
+
 def _filter_candidates_for_scene(word, candidates, scene):
     """过滤不适合场景的候选词。返回过滤后的列表，若全被过滤则返回原列表。
 
     Always filters _AI_PATTERN_BLACKLIST (candidates that trigger detect_cn itself).
-    Additionally filters ACADEMIC_BLACKLIST_CANDIDATES when scene='academic'.
+    Additionally filters ACADEMIC_BLACKLIST_CANDIDATES when scene='academic',
+    or NOVEL_BLACKLIST_CANDIDATES when scene='novel'.
     """
     filtered = [c for c in candidates if c not in _AI_PATTERN_BLACKLIST]
     if scene == 'academic':
         filtered = [c for c in filtered if c not in ACADEMIC_BLACKLIST_CANDIDATES]
+    elif scene == 'novel':
+        filtered = [c for c in filtered if c not in NOVEL_BLACKLIST_CANDIDATES]
     return filtered if filtered else candidates
 
 
@@ -402,6 +423,8 @@ def expand_with_cilin(word, candidates, scene='general'):
         if c in _CILIN_BLACKLIST:
             continue  # semantic/POS/register mismatch, curated
         if scene == 'academic' and c in ACADEMIC_BLACKLIST_CANDIDATES:
+            continue
+        if scene == 'novel' and c in NOVEL_BLACKLIST_CANDIDATES:
             continue
         filtered.append(c)
         existing.add(c)
@@ -1349,7 +1372,13 @@ def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAU
         bigram_strength = 0.5 if aggressive else 0.3
         if tier == 'moderate':
             bigram_strength *= 0.6
-        text = reduce_high_freq_bigrams(text, strength=bigram_strength, scene=scene)
+        # Route bigram substitution through the novel-register filter when
+        # --style novel is active. NOVEL_BLACKLIST_CANDIDATES strips the
+        # overtly colloquial / book-Chinese substitutes ('搞'/'拉高'/'业已'/
+        # '早就') that break narrative register, while keeping
+        # ('察觉'/'识破') that academic mode rejects.
+        bigram_scene = 'novel' if style == 'novel' else scene
+        text = reduce_high_freq_bigrams(text, strength=bigram_strength, scene=bigram_scene)
 
     # Noise + sentence randomization only at full tier — these are the operations
     # that on HC3 sometimes added spurious AI patterns to already-clean text.
