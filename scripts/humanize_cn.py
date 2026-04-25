@@ -197,7 +197,12 @@ WORD_SYNONYMS = {
     '形成': ['催生', '铸成', '生成', '酿成'],
     '获得': ['取得', '赢得', '得到', '揽获'],
     '确定': ['敲定', '锁定', '明确', '定下'],
-    '发现': ['察觉', '觉察', '识破', '看出'],
+    # '发现' removed: substring inside the 4-char idiom 案发现场 gets
+    # corrupted into '案察觉场'/'案觉察场'/'案识破场' when the word-level
+    # substitution crosses the idiom boundary. Same family of bug as '存在'
+    # / '有效' below — without proper word-boundary tagging the safe move
+    # is to drop the entry. Lost LR delta is small ('发现' is mostly used
+    # as a finite verb where surrounding 2-char windows already vary).
     '推动': ['驱动', '助推', '催动', '拉动'],
     '加强': ['强化', '增强', '夯实', '巩固'],
     '体现': ['彰显', '凸显', '映射', '折射'],
