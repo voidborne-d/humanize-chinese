@@ -937,11 +937,23 @@ def replace_phrases(text, casualness=0.3):
             safe_alts = [alt for alt in alternatives if phrase not in alt]
             if not safe_alts:
                 continue
+            # Dedupe replacement choices for this phrase. pick_best_replacement
+            # is deterministic on perplexity, so when the same phrase occurs
+            # multiple times in a long sample it gets rewritten to the same
+            # alternative every iteration ('可能引起' x4-5 in audit). Track
+            # which alts have been used and prefer unused ones; fall back to
+            # the full safe list once exhausted.
+            used = set()
             replacement = pick_best_replacement(text, phrase, safe_alts)
             text = text.replace(phrase, replacement, 1)
+            used.add(replacement)
             while phrase in text:
-                replacement = pick_best_replacement(text, phrase, safe_alts)
+                avail = [a for a in safe_alts if a not in used]
+                if not avail:
+                    avail = safe_alts
+                replacement = pick_best_replacement(text, phrase, avail)
                 text = text.replace(phrase, replacement, 1)
+                used.add(replacement)
 
     return text
 
