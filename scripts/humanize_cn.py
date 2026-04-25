@@ -1252,7 +1252,78 @@ def _estimate_source_aiscore(text):
 DEFAULT_BEST_OF_N = 10
 
 
-def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAULT_BEST_OF_N):
+# AI long-form scaffolding patterns. Mined from ai_longform_corpus 2026-04-25.
+# Models prepend meta-commentary and structural scaffolding to long fiction/
+# essay output that human authors never produce. Keep these regex-based and
+# conservative: only strip when patterns clearly match.
+_AI_SCAFFOLDING_PATTERNS = (
+    r'我将按照您的',
+    r'按照您的要求',
+    r'根据您(供给|提供)的',
+    r'以下是我(根据|为您|按照)',
+    r'故事梗概',
+    r'本次写作(重点|将|主要)',
+    r'接下来故事(可能|将|会)',
+    r'这是一个关于.{0,20}的故事',
+)
+_AI_MD_HEADER = re.compile(r'^\s*#{1,4}\s+')
+_AI_BULLET_OPENER = re.compile(r'^\s*[-\*]\s+\*\*[^\*]+\*\*[:：]')
+_AI_HRULE = re.compile(r'^\s*(?:---+|\*\*\*+|===+)\s*$')
+
+
+def _has_scaffolding_signal(text):
+    """Quick check: does text look like AI long-form output with scaffolding?"""
+    headers = len(re.findall(r'^#{1,4}\s+', text, flags=re.MULTILINE))
+    if headers >= 3:
+        return True
+    head = text.lstrip()[:100]
+    return any(re.search(p, head) for p in _AI_SCAFFOLDING_PATTERNS)
+
+
+def _strip_ai_scaffolding(text):
+    """Drop AI prompt artifacts, markdown headers, synopsis bullets, hrules.
+    Same logic transform_novel uses, but reusable for default rewrite path."""
+    pats = [re.compile(p) for p in _AI_SCAFFOLDING_PATTERNS]
+
+    def _has_artifact(p_head):
+        return any(pat.search(p_head) for pat in pats)
+
+    paragraphs = text.split('\n\n')
+    cleaned = []
+    for p in paragraphs:
+        stripped = p.strip()
+        if not stripped:
+            continue
+
+        # Drop markdown section header line, keep remaining body
+        if _AI_MD_HEADER.match(stripped):
+            lines = stripped.split('\n', 1)
+            if len(lines) == 1:
+                continue
+            stripped = lines[1].strip()
+            if not stripped:
+                continue
+
+        # Drop horizontal rules (--- / ***)
+        if _AI_HRULE.match(stripped):
+            continue
+
+        # Drop synopsis bullet scaffolding "- **Key**：..."
+        if _AI_BULLET_OPENER.match(stripped):
+            continue
+
+        # Drop short meta-commentary paragraphs
+        head = stripped[:60]
+        if _has_artifact(head) and len(stripped) < 300:
+            continue
+
+        cleaned.append(stripped)
+
+    return '\n\n'.join(cleaned)
+
+
+def humanize(text, scene='general', aggressive=False, seed=None,
+             best_of_n=DEFAULT_BEST_OF_N, keep_scaffolding=False):
     """Apply all humanization transformations in order.
 
     Graduated intensity based on source AI-score (pre-detect):
@@ -1265,6 +1336,11 @@ def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAU
     and returns the output that scores lowest on the LR ensemble (requires
     scripts/lr_coef_cn.json). Useful when minimizing LR score matters more
     than latency.
+
+    keep_scaffolding: if True, retain AI markdown headers / prompt artifacts /
+    synopsis bullets / horizontal rules. Default False — these are AI long-form
+    tells that human authors never produce, so default path strips them. Set
+    True for technical docs / blogs with intentional structure.
 
     Rationale: HC3 benchmark showed that full pipeline on already-clean text
     (source score < 15) adds spurious AI patterns (段落均匀/熵低) via noise
@@ -1280,7 +1356,8 @@ def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAU
         for i in range(best_of_n):
             s = base_seed + i
             out = humanize(text, scene=scene, aggressive=aggressive,
-                           seed=s, best_of_n=None)
+                           seed=s, best_of_n=None,
+                           keep_scaffolding=keep_scaffolding)
             lr = compute_lr_score(out)
             score = lr['score'] if lr else 50
             candidates.append((score, s, out))
@@ -1289,6 +1366,14 @@ def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAU
 
     if seed is not None:
         random.seed(seed)
+
+    # Pre-pass: strip AI long-form scaffolding (markdown headers, prompt
+    # artifacts, synopsis bullets, hrules) when detected. Default-on per
+    # 2026-04-25 unification: users running `humanize rewrite chapter.txt`
+    # on AI-written long-form get clean output without needing --style novel.
+    # Opt out via keep_scaffolding=True for technical docs / structured blogs.
+    if not keep_scaffolding and _has_scaffolding_signal(text):
+        text = _strip_ai_scaffolding(text)
 
     config = SCENES.get(scene, SCENES['general'])
     casualness = config.get('casualness', 0.3)
@@ -1444,6 +1529,8 @@ def main():
                        help='快速模式（= --no-stats --no-noise），只跑短语替换 + 结构清理')
     parser.add_argument('--cilin', action='store_true',
                        help='用 CiLin 同义词词林扩展候选（~40K 词 vs 手工 200 词）')
+    parser.add_argument('--keep-scaffolding', action='store_true',
+                       help='保留 AI markdown 章节头 / 大纲 bullet / 元说明段（默认自动剔除；用于技术文档或有意保结构）')
 
     args = parser.parse_args()
 
@@ -1476,7 +1563,8 @@ def main():
     
     # Humanize
     result = humanize(text, args.scene, args.aggressive, args.seed,
-                       best_of_n=args.best_of_n)
+                       best_of_n=args.best_of_n,
+                       keep_scaffolding=args.keep_scaffolding)
     
     # Apply style if specified
     if args.style:

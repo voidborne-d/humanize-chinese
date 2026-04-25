@@ -174,27 +174,28 @@ cp humanize-chinese/claude-code/*.md YOUR_PROJECT/.claude/commands/
 ./humanize compare text.txt -a           # 对比
 ```
 
-### 📚 长篇小说 / 博客（--scene novel / --scene auto）
+### 📚 长文本支持（默认开启，无需额外参数）
 
-默认 detector 用 HC3 短问答校准，对 GPT-4o/Claude/Gemini 写的长篇小说、长博客会系统性欠估。两种修正方式：
+直接 `./humanize detect chapter.txt` 和 `./humanize rewrite chapter.txt` 即可处理长文本，无需 `--scene` / `--style novel` 等额外标志：
+
+- **detect 默认 `--scene auto`**：≥1500 中文字符自动用长篇 LR 校准，短文本仍走 general。专训在 170 条 AI 长文本（5 家 LLM × 5 类：小说/学术/新闻/博客/评论）+ 170 条人类长文本（v3ucn 小说 + CNewSum 新闻 + 博客）上，holdout 89.7%。
+- **rewrite 自动剔 AI 长文 scaffolding**：检测到 markdown 章节头（## ###）、AI 元说明（"我将按照您的要求/故事梗概/本次写作"）、大纲 bullet（- **关键点**：）、横线分隔（---）时整段剔除，输出干净的连贯叙事/论述。技术文档想保结构？加 `--keep-scaffolding`。
 
 ```bash
-python scripts/detect_cn.py 章节.txt --scene novel     # 显式：小说/长博客/散文/长新闻
-python scripts/detect_cn.py 稿件.txt --scene auto      # 按长度自动选（≥1500 中文字符走长篇 LR）
-python scripts/detect_cn.py 短问答.txt                 # 默认 scene（短问答/通用）
-python scripts/detect_cn.py 论文.txt --scene academic  # 学术论文（显式 opt-in）
+./humanize detect chapter.txt          # 自动 auto-scene；长篇走长篇 LR
+./humanize rewrite chapter.txt         # 自动剔 AI scaffolding
+./humanize rewrite docs.md --keep-scaffolding  # 保留 markdown 结构
+./humanize detect 论文.txt --scene academic    # 学术论文显式 opt-in
 ```
 
-长篇 LR 专训在 170 条 AI 长文本（5 家 LLM × 5 类：小说/学术/新闻/博客/评论）+ 170 条人类长文本（v3ucn 小说 + CNewSum 新闻 + 博客）上，holdout 89.7%。
-
-实测对照（3 篇 Gemini-2.5-flash 新写小说章节，约 2800-3200 字）：
+实测 3 篇 Gemini-2.5-flash 小说章节（约 2800-3200 字）detect:
 
 | 模式 | 样本1 | 样本2 | 样本3 | 均值 |
 |------|-------|-------|-------|------|
-| 默认 scene（HC3 校准） | 52 | 38 | 70 | 53 |
-| **--scene novel / auto** | **63** | **57** | **82** | **67** |
+| HC3 短问答校准（旧默认） | 52 | 38 | 70 | 53 |
+| **auto / novel 长篇校准** | **63** | **57** | **82** | **67** |
 
-默认模式对现代 LLM 的长篇创作欠估 ~15 分，切 `--scene novel` 或 `--scene auto` 可修正。混合长度输入推荐 `--scene auto` —— 短文本仍走 general，长文本走长篇 LR。
+修正约 15 分欠估。
 
 ### 🎨 风格转换
 
@@ -205,9 +206,9 @@ python scripts/detect_cn.py 论文.txt --scene academic  # 学术论文（显式
 ./humanize style chapter.txt --style novel      # 小说/长篇叙事
 ```
 
-8 种风格：口语化 / 知乎 / 小红书 / 公众号 / 学术 / 文艺 / 微博 / **小说**
+8 种风格：口语化 / 知乎 / 小红书 / 公众号 / 学术 / 文艺 / 微博 / 小说
 
-`--style novel` 专为长篇叙事设计：humanize 后剔除 AI 写小说时常混入的元说明（"我将按照您的要求创作..."、"故事梗概"、"本次写作"）+ markdown 章节头 (## ###) + 大纲 bullet (- **关键点**：) + 分隔线，保段落不加 emoji/hashtag。处理长篇章节、博客时观感更干净。
+注：`./humanize rewrite chapter.txt` 默认已自动剔 AI scaffolding（markdown / 元说明 / 大纲 bullet），多数长篇场景直接用 rewrite 就够。`--style novel` 用于显式指定，输出完全不加 emoji/hashtag/casual 语气词的纯叙事。
 
 风格转换会先自动跑一遍 humanize，去掉 AI 高频词，再套风格。`--no-humanize` 关闭。
 
@@ -319,7 +320,7 @@ python scripts/academic_cn.py 论文.txt -o 改后.txt -a --compare
 
 ```bash
 ./humanize detect   [file] [-v] [-s] [-j]
-./humanize rewrite  [file] [-o out] [--scene S] [--style S] [-a] [--seed N] [--quick] [--cilin]
+./humanize rewrite  [file] [-o out] [--scene S] [--style S] [-a] [--seed N] [--quick] [--cilin] [--keep-scaffolding]
 ./humanize academic [file] [-o out] [--detect-only] [-a] [--compare] [--quick]
 ./humanize style    [file] --style S [-o out] [--no-humanize]
 ./humanize compare  [file] [-o out] [--scene S] [-a]
@@ -347,6 +348,7 @@ python scripts/compare_cn.py [file] ...
 | `--no-stats` | 关闭统计优化 |
 | `--no-noise` | 关闭噪声注入和句长随机化 |
 | `--cilin` | 开启 CiLin 同义词扩展（humanize） |
+| `--keep-scaffolding` | 保留 markdown 章节头/大纲 bullet/AI 元说明（默认自动剔，技术文档可加） |
 | `--compare` | 改写前后双评分对比（academic） |
 | `--no-humanize` | style 转换前不先去 AI 词 |
 

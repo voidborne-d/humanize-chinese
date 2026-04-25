@@ -716,8 +716,8 @@ def main():
                         help='仅 LR ensemble 打分（诊断用）')
     parser.add_argument('--rule-only', action='store_true',
                         help='仅 rule+stat 打分（legacy 模式，忽略 LR 系数）')
-    parser.add_argument('--scene', default='general', choices=['general', 'academic', 'novel', 'auto'],
-                        help='LR 场景（academic 自动用 lr_coef_academic.json）')
+    parser.add_argument('--scene', default='auto', choices=['general', 'academic', 'novel', 'auto'],
+                        help='LR 场景（默认 auto：≥1500 中文字符走长篇 LR，否则 general；academic 显式 opt-in）')
 
     args = parser.parse_args()
     
