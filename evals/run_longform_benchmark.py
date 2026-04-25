@@ -116,11 +116,12 @@ def count_quality_issues(text):
     }
 
 
-def run_one_ai(sample, seed=42, best_of_n=0):
+def run_one_ai(sample, seed=42, best_of_n=0, humanize_style=None):
     orig = sample['text']
     orig_score = score_longform(orig, scene='novel')
     humanized = humanize_general(orig, scene='general', aggressive=False,
-                                 seed=seed, best_of_n=best_of_n)
+                                 seed=seed, best_of_n=best_of_n,
+                                 style=humanize_style)
     humanized_score = score_longform(humanized, scene='novel')
     p_before = count_paragraphs(orig)
     p_after = count_paragraphs(humanized)
@@ -283,6 +284,11 @@ def main():
     ap.add_argument('--seed', type=int, default=42)
     ap.add_argument('--best-of-n', type=int, default=0,
                     help='humanize best-of-n (0 = single seed, default 0 for speed)')
+    ap.add_argument('--humanize-style', default=None,
+                    help='pass style kwarg to humanize() — e.g. "novel" routes '
+                         'novel-register narrative-safe filters (skip noise '
+                         'inject, novel-aware bigram blacklist). Default None '
+                         'matches the production humanize(scene="general") path.')
     ap.add_argument('-o', '--output', help='save JSON report to file')
     args = ap.parse_args()
 
@@ -303,7 +309,9 @@ def main():
         if i % 10 == 0:
             print(f'  ... {i}/{len(ai)} done')
         try:
-            ai_results.append(run_one_ai(s, seed=args.seed, best_of_n=args.best_of_n))
+            ai_results.append(run_one_ai(s, seed=args.seed,
+                                          best_of_n=args.best_of_n,
+                                          humanize_style=args.humanize_style))
         except Exception as e:
             print(f'  ! sample {i} failed: {e}')
 
