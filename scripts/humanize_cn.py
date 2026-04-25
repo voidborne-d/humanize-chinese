@@ -1403,6 +1403,23 @@ def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAU
     trans_target = 3.0 if cn_chars >= 1500 else 6.0
     text = cap_transition_density(text, target=trans_target)
 
+    # Novel/fiction register: strip overused AI-style intensifiers.
+    # Spot-check on 20 \u7384\u5e7b samples showed \u300c\u5341\u5206/\u975e\u5e38/\u6781\u5176/\u683c\u5916/\u6781\u4e3a/\u6781\u5ea6/
+    # \u5c24\u4e3a/\u9887\u4e3a\u300d+ adj appears ~25-28 times per 20-sample batch as an AI
+    # mannerism. Negative lookaheads exclude the two false positives we
+    # observed: '\u5341\u5206\u949f' (time noun) and '\u975e\u5e38\u89c4' (adv prefix).
+    # Skip '\u65e0\u6bd4' (\u53e5\u5c3e idiomatic, deletion would break clauses) and
+    # '\u76f8\u5f53' (quantifier, '\u76f8\u5f53\u591a/\u76f8\u5f53\u957f' \u2260 intensifier).
+    if style == 'novel':
+        text = re.sub(r'\u5341\u5206(?![\u949f\u4e4b])', '', text)
+        text = re.sub(r'\u975e\u5e38(?![\u89c4])', '', text)
+        text = re.sub(r'\u6781\u5176', '', text)
+        text = re.sub(r'\u683c\u5916', '', text)
+        text = re.sub(r'\u6781\u4e3a', '', text)
+        text = re.sub(r'\u6781\u5ea6', '', text)
+        text = re.sub(r'\u5c24\u4e3a', '', text)
+        text = re.sub(r'\u9887\u4e3a', '', text)
+
     # Clean up artifacts
     text = re.sub(r'[，,]{2,}', '，', text)  # Remove double commas
     text = re.sub(r'[。]{2,}', '。', text)    # Remove double periods
