@@ -719,7 +719,32 @@ def main():
     parser.add_argument('--scene', default='general', choices=['general', 'academic', 'novel', 'auto'],
                         help='LR 场景（academic 自动用 lr_coef_academic.json）')
 
-    args = parser.parse_args()
+    # Catch the common UX confusion (issue #6): users see `-o output.txt
+    # --compare` documented for the rewriter and try them on the detector.
+    # Surface a friendly redirect instead of argparse's terse "unrecognized
+    # arguments".
+    args, unknown = parser.parse_known_args()
+    rewriter_flags = {'-o', '--output', '--compare', '-a', '--aggressive'}
+    misuse = [a for a in unknown if a in rewriter_flags]
+    if misuse:
+        print(
+            f'错误: detect_cn.py 不接受参数 {misuse}（这些是改写工具的参数）',
+            file=sys.stderr,
+        )
+        print('你似乎想运行改写工具。请改用：', file=sys.stderr)
+        print('  ./humanize academic <input> -o <output> --compare', file=sys.stderr)
+        print(
+            '  或 python3 scripts/academic_cn.py <input> -o <output> --compare',
+            file=sys.stderr,
+        )
+        print(
+            '\ndetect_cn.py 只做 AI 文本检测（不改写），常见用法：', file=sys.stderr
+        )
+        print('  python3 scripts/detect_cn.py <input>', file=sys.stderr)
+        print('  python3 scripts/detect_cn.py <input> --json', file=sys.stderr)
+        sys.exit(2)
+    if unknown:
+        parser.parse_args()  # let argparse handle the rest with its normal error
     
     # Read input
     if args.file:
