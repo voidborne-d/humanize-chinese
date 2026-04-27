@@ -871,6 +871,18 @@ def inject_noise_expressions(text, density=0.15, style='general'):
         # character's mouth \u2014 awkward and breaks dialogue flow.
         if '"' in s_text or '\u201c' in s_text or '\u201d' in s_text or '\u300c' in s_text or '\u300d' in s_text:
             continue
+        # Cycle 57: skip sentences that start with markdown structural
+        # markers (# heading / - * bullet / **bold** subheader / 1. 2.
+        # numbered list). Injecting '\u4e0d\u7792\u4f60\u8bf4\uff0c' before '#### 2.2 ...'
+        # corrupts the markdown header (sample 7 academic audit:
+        # '\u4e0d\u7792\u4f60\u8bf4\uff0c#### 2.2 ...' \u2014 '####' no longer parses as h4).
+        s_lstripped = s_text.lstrip()
+        if s_lstripped.startswith('#') or s_lstripped.startswith('- ') or s_lstripped.startswith('* '):
+            continue
+        if s_lstripped.startswith('**') and s_lstripped.rstrip().endswith('**'):
+            continue
+        if re.match(r'^\d+[.\u3002\uff0e)\uff09]', s_lstripped):
+            continue
         if random.random() > density:
             continue
 
