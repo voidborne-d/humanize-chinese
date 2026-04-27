@@ -228,12 +228,13 @@ WORD_SYNONYMS = {
     '关注': ['留意', '聚焦', '在意', '着眼'],
     '涉及': ['牵涉', '关乎', '触及', '波及'],
     '依据': ['按照', '参照', '凭', '根据'],
-    # Cycle 61: dropped '取用' — '取用' means 'fetch and use' (informal /
-    # archaic), wrong register for the standard '采用 method/approach'
-    # (formal academic/technical). Audit on 170 longform samples found
-    # 27 hits where humanize substituted '取用' into academic and news
-    # paragraphs ("取用对抗学习" / "取用先进的5纳米制程").
-    '采用': ['选用', '沿用', '引用'],
+    # Cycle 61: dropped '取用' (informal/archaic 'fetch and use').
+    # Cycle 62: dropped '引用' too — '引用' means 'cite/quote/reference',
+    # not 'adopt/employ'. Same audit found 27 hits where '采用' was
+    # substituted with '引用' in formal contexts ("引用对抗学习" / "引用
+    # 先进的5纳米制程" / "引用复式教学法") — clear semantic error: a method
+    # is adopted, not cited.
+    '采用': ['选用', '沿用'],
     # ── 副词 / 程度 ──
     '目前': ['眼下', '当前', '现阶段', '如今'],
     '同时': ['与此同时', '此外', '另外', '并且'],
