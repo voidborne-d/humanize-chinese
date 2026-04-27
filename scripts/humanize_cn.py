@@ -315,7 +315,12 @@ WORD_SYNONYMS = {
     '资源': ['物资', '储备', '要素'],
     # '场景' alt removed: when source is '市场环境', substitution gives
     # '市场场景' (doubled-场 across word boundary).
-    '环境': ['氛围', '生态', '背景'],
+    # Cycle 79: dropped '生态' — it is in detect_cn's empty_grand_words
+    # pattern (weight 12, the highest). Substituting '环境' with '生态'
+    # produces AI-buzzword uses ('AI生态' / '教育生态') that the detector
+    # immediately flags. Added '局面' / '情境' as clean alts in the same
+    # semantic neighborhood without doubled-char boundary issues.
+    '环境': ['氛围', '背景', '局面', '情境'],
     '系统': ['体系', '架构', '框架'],
     '策略': ['路线', '方案', '对策', '路子'],
 }
