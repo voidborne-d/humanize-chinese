@@ -287,7 +287,13 @@ WORD_SYNONYMS = {
     '方面': ['层面', '维度', '领域'],
     '情况': ['状况', '形势', '境况', '局面'],
     '特点': ['特征', '属性', '标志', '特色'],
-    '方法': ['办法', '手段', '途径', '招数'],
+    # Cycle 71: dropped '招数' — colloquial 'trick / move' (martial-arts
+    # connotation), wrong register for '方法' (systematic approach). Audit
+    # found 16 humanize-introduced 招数 in news/blog ("教学招数" / "学习
+    # 招数" / "教育招数论" / "工作招数" / "冲洗招数"). 招数 was already
+    # blacklisted for academic, so this drop only affects general/social/
+    # novel where it was firing inappropriately.
+    '方法': ['办法', '手段', '途径'],
     '过程': ['历程', '进程', '流程', '经过'],
     '结果': ['成果', '产物', '结局'],
     '条件': ['前提', '条件', '要件', '门槛'],
