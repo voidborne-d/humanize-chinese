@@ -275,11 +275,14 @@ WORD_SYNONYMS = {
     # '重要' as substring), substitution gives '至关关键' (doubled-关 across
     # word boundary). Other alts ('核心', '要紧', '紧要') preserve the idiom.
     '重要': ['核心', '要紧', '紧要'],
-    # Cycle 60: dropped '醒目' — means 'eye-catching/visually striking',
-    # not the degree adverb 'noticeable/significant'. Replacing 显著 with
-    # 醒目 in verb-adverb position breaks meaning: '显著下降/增长/缩短'
-    # → '醒目下降/增长/缩短' reads as nonsensical (samples 12/49 academic).
-    '显著': ['明显', '突出', '可观'],
+    # Cycle 60: dropped '醒目' (visually striking, not degree adverb).
+    # Cycle 66: dropped '突出' too — 突出 is verb/adjective ('stick out /
+    # prominent') and doesn't work as a degree adverb. Audit found 19
+    # adverb-position substitutions where it produced register/semantic
+    # mismatch ('突出下降' / '突出高于' / '突出提升'). Replaced with '大幅',
+    # which works as adverb of degree (118 hits in human news corpus).
+    # '突出' is kept in '强调' alts where it functions as V (突出重要性).
+    '显著': ['明显', '可观', '大幅'],
     '问题': ['难题', '麻烦', '症结'],
     '方面': ['层面', '维度', '领域'],
     '情况': ['状况', '形势', '境况', '局面'],
