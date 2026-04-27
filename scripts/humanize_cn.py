@@ -490,7 +490,9 @@ NOISE_EXPRESSIONS = {
                         '更确切地说', '往深了讲', '细想一下'],
     'uncertainty': ['大概', '差不多', '似乎', '或许', '多少有些',
                     '约莫', '估摸着', '八成'],
-    'transition_casual': ['话说回来', '反过来看', '换句话说', '说到这里',
+    # Cycle 77: dropped '换句话说' — it is in detect_cn's ai_high_freq_words
+    # pattern, so injecting it raises the AI score (self-defeating).
+    'transition_casual': ['话说回来', '反过来看', '说到这里',
                           '再往下想', '回过头看', '顺着这个思路'],
     'filler': ['当然了', '其实', '说到底', '怎么说呢', '不瞒你说',
                '你别说', '讲真', '这么说吧'],
@@ -509,7 +511,11 @@ NOISE_ACADEMIC_CATEGORIES = ['hedging', 'self_correction', 'uncertainty']
 NOISE_ACADEMIC_EXPRESSIONS = {
     'hedging': ['客观地说', '实事求是地讲', '平心而论', '公正地看'],
     'self_correction': ['准确地讲', '严格来说', '更确切地说', '往深了讲'],
-    'uncertainty': ['大致', '似乎', '或许', '多少', '在一定程度上'],
+    # Cycle 77: dropped '在一定程度上' from this academic uncertainty pool too
+    # (sister fix to cycle 76 in academic_cn). It is in detect_cn's hedging_
+    # language and ai_high_freq_words patterns; injecting it raises the AI
+    # score. Pool 5→4.
+    'uncertainty': ['大致', '似乎', '或许', '多少'],
 }
 
 def _load_bigram_freq():
