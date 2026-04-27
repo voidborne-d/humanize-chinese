@@ -463,8 +463,13 @@ NOISE_EXPRESSIONS = {
                           '再往下想', '回过头看', '顺着这个思路'],
     'filler': ['当然了', '其实', '说到底', '怎么说呢', '不瞒你说',
                '你别说', '讲真', '这么说吧'],
-    'personal': ['我觉得', '在我看来', '依我之见', '以我的经验',
-                 '在我的理解里', '就我所知', '我个人倾向于'],
+    # Cycle 55: dropped 5 entries that appear 0 times in 2.5M chars of
+    # human Chinese (news + novel corpora) — '依我之见 / 以我的经验 /
+    # 在我的理解里 / 就我所知 / 我个人倾向于'. These read as AI-style
+    # stilted hedges in any register (academic / general / social), not
+    # just academic. '我觉得' and '在我看来' kept (105 + 4 hits in human
+    # corpus, idiomatic).
+    'personal': ['我觉得', '在我看来'],
 }
 
 # Academic-safe categories (no oral fillers or personal opinions)
