@@ -854,12 +854,14 @@ _NUMBERED_LIST_RE = re.compile(r'^\d+[.。．)）]')
 
 def _is_md_header(p):
     """Markdown headers / list bullets / bold subheaders / numbered list
-    items are deliberately short structural paragraphs (## 引言 /
-    ### 故事梗概 / - **bullet**: ... / **2.1 X** / 1. **政策支持**：...).
-    Merging them into adjacent body paragraphs collapses document
-    structure (cycle 44 audit: humanize_academic dropped 11/40 longform
-    academic+news samples' paragraph counts because of this). Same guard
-    family as cycle-43 fix in humanize_cn.vary_paragraph_rhythm."""
+    items / dialogue lines are deliberately short structural paragraphs
+    (## 引言 / ### 故事梗概 / - **bullet**: ... / **2.1 X** /
+    1. **政策支持**：... / "..."). Merging them into adjacent body
+    paragraphs collapses document structure (cycle 44 audit:
+    humanize_academic dropped 11/40 longform academic+news samples'
+    paragraph counts; cycle-46 audit: novel dialogue exchanges merged
+    into one block losing turn-by-turn formatting). Same guard family
+    as cycle-43 fix in humanize_cn.vary_paragraph_rhythm."""
     s = p.lstrip()
     if s.startswith('#') or s.startswith('- ') or s.startswith('* '):
         return True
@@ -868,6 +870,9 @@ def _is_md_header(p):
         return True
     # Numbered list item ('1.', '2)', '3。', '4．' etc.).
     if _NUMBERED_LIST_RE.match(s):
+        return True
+    # Dialogue line (Chinese / Western quotes / Japanese 「」)
+    if s and s[0] in '"“「':
         return True
     return False
 

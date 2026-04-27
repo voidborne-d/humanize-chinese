@@ -1106,19 +1106,22 @@ def vary_paragraph_rhythm(text):
 
     def _is_md_header(p):
         # Markdown headers ('# ', '## ', '### ' …), bullets, bold section
-        # subheaders, and numbered list items are deliberately short
-        # structural paragraphs; merging them collapses document structure
-        # (sample 63 of longform corpus: a tech blog with 62 段落 incl.
-        # ## headers had 8 paragraphs lost; cycle-44 academic audit also
-        # caught '**2.1 X**' bold subheaders and '1. **X**：…' numbered
-        # list items being merged into adjacent paragraphs).
+        # subheaders, numbered list items, and dialogue lines are
+        # deliberately short structural paragraphs; merging them collapses
+        # document structure (sample 63 of longform corpus: ## headers
+        # lost; cycle-44 audit: bold subheaders + numbered list items;
+        # cycle-46 audit: novel sample 1323 had two dialogue paragraphs
+        # like '"嗯，我很喜欢。"' merged into one block, losing the
+        # turn-by-turn formatting).
         s = p.lstrip()
         if s.startswith('#') or s.startswith('- ') or s.startswith('* '):
             return True
         if s.startswith('**') and s.rstrip().endswith('**'):
             return True
-        # Numbered list item ('1.', '2)', '3。', '4．' etc.).
         if re.match(r'^\d+[.。．)）]', s):
+            return True
+        # Dialogue line (Chinese / Western quotes / Japanese 「」)
+        if s and s[0] in '"“「':
             return True
         return False
 
