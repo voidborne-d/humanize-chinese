@@ -1105,13 +1105,22 @@ def vary_paragraph_rhythm(text):
     avg_len = sum(lengths) / len(lengths) if lengths else 100
 
     def _is_md_header(p):
-        # Markdown headers ('# ', '## ', '### ' …) and synopsis bullets are
-        # short paragraphs by intent; merging them collapses document
-        # structure (sample 63 of longform corpus: a tech blog with 62
-        # 段落 incl. ## headers had 8 paragraphs lost when this function
-        # treated headers as just short text).
+        # Markdown headers ('# ', '## ', '### ' …), bullets, bold section
+        # subheaders, and numbered list items are deliberately short
+        # structural paragraphs; merging them collapses document structure
+        # (sample 63 of longform corpus: a tech blog with 62 段落 incl.
+        # ## headers had 8 paragraphs lost; cycle-44 academic audit also
+        # caught '**2.1 X**' bold subheaders and '1. **X**：…' numbered
+        # list items being merged into adjacent paragraphs).
         s = p.lstrip()
-        return s.startswith('#') or s.startswith('- ') or s.startswith('* ')
+        if s.startswith('#') or s.startswith('- ') or s.startswith('* '):
+            return True
+        if s.startswith('**') and s.rstrip().endswith('**'):
+            return True
+        # Numbered list item ('1.', '2)', '3。', '4．' etc.).
+        if re.match(r'^\d+[.。．)）]', s):
+            return True
+        return False
 
     result = []
     i = 0

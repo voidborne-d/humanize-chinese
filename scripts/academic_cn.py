@@ -849,6 +849,29 @@ def _add_author_voice(text, aggressive=False):
     return text
 
 
+_NUMBERED_LIST_RE = re.compile(r'^\d+[.。．)）]')
+
+
+def _is_md_header(p):
+    """Markdown headers / list bullets / bold subheaders / numbered list
+    items are deliberately short structural paragraphs (## 引言 /
+    ### 故事梗概 / - **bullet**: ... / **2.1 X** / 1. **政策支持**：...).
+    Merging them into adjacent body paragraphs collapses document
+    structure (cycle 44 audit: humanize_academic dropped 11/40 longform
+    academic+news samples' paragraph counts because of this). Same guard
+    family as cycle-43 fix in humanize_cn.vary_paragraph_rhythm."""
+    s = p.lstrip()
+    if s.startswith('#') or s.startswith('- ') or s.startswith('* '):
+        return True
+    # Pure bold-marker subheading: '**...**' that is most of the paragraph.
+    if s.startswith('**') and s.rstrip().endswith('**'):
+        return True
+    # Numbered list item ('1.', '2)', '3。', '4．' etc.).
+    if _NUMBERED_LIST_RE.match(s):
+        return True
+    return False
+
+
 def _break_uniform_structure(text):
     """Vary paragraph structure to break AI-like uniformity.
     Preserves paragraph breaks (\n\n)."""
@@ -865,11 +888,15 @@ def _break_uniform_structure(text):
             i += 1
             continue
 
-        # Occasionally merge two short adjacent paragraphs
+        # Occasionally merge two short adjacent paragraphs (skip markdown
+        # headers and bullet items — those are structural markers, not body
+        # text that wants combining).
         if (i + 1 < len(paragraphs) and
                 count_chinese(para) < 60 and
                 count_chinese(paragraphs[i + 1]) < 60 and
                 paragraphs[i + 1].strip() and
+                not _is_md_header(para) and
+                not _is_md_header(paragraphs[i + 1]) and
                 random.random() < 0.25):
             merged = para.rstrip() + '\n' + paragraphs[i + 1].lstrip()
             result.append(merged)
