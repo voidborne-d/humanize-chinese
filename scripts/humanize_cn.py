@@ -354,6 +354,11 @@ ACADEMIC_BLACKLIST_CANDIDATES = {
     '探究', '剖析',
     # 连接词口语化
     '缘于', '缘由', '来由',
+    # 因果/序列连词 - 在 academic 里 '于是' 倾向 sequential temporal sense
+    # ('then …'), 不像 '因此 / 因而' 那样表示 logical inference. Cycle 64
+    # audit found 12 academic samples with '于是 解释 / 于是 削弱 / 于是
+    # 及时干预' 等 logical 上下文里被误用. 保留给 general/novel scene.
+    '于是',
 }
 
 
