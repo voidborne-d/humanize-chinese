@@ -871,15 +871,18 @@ def inject_noise_expressions(text, density=0.15, style='general'):
         # character's mouth \u2014 awkward and breaks dialogue flow.
         if '"' in s_text or '\u201c' in s_text or '\u201d' in s_text or '\u300c' in s_text or '\u300d' in s_text:
             continue
-        # Cycle 57: skip sentences that start with markdown structural
+        # Cycle 57/58: skip sentences that start with markdown structural
         # markers (# heading / - * bullet / **bold** subheader / 1. 2.
-        # numbered list). Injecting '\u4e0d\u7792\u4f60\u8bf4\uff0c' before '#### 2.2 ...'
-        # corrupts the markdown header (sample 7 academic audit:
-        # '\u4e0d\u7792\u4f60\u8bf4\uff0c#### 2.2 ...' \u2014 '####' no longer parses as h4).
+        # numbered list). Injecting '\u4e0d\u7792\u4f60\u8bf4\uff0c' before '#### 2.2 ...' or
+        # '\u5728\u6211\u770b\u6765\uff0c**3. \u54c1\u724c\u5efa\u8bbe\uff1a\u6587\u5316\u2026**' corrupts the structural marker.
+        # Cycle 58 widens the **-prefix check from "starts AND ends with **"
+        # (pure bold subheader) to just "starts with **" \u2014 covers hybrid
+        # forms like '**1. \u8d44\u6e90\u74f6\u9888\uff1a** \u9ad8\u5e76\u53d1\u610f\u5473\u7740\u2026' that the cycle 57
+        # check missed (audit found 34 longform samples with this pattern).
         s_lstripped = s_text.lstrip()
         if s_lstripped.startswith('#') or s_lstripped.startswith('- ') or s_lstripped.startswith('* '):
             continue
-        if s_lstripped.startswith('**') and s_lstripped.rstrip().endswith('**'):
+        if s_lstripped.startswith('**'):
             continue
         if re.match(r'^\d+[.\u3002\uff0e)\uff09]', s_lstripped):
             continue
