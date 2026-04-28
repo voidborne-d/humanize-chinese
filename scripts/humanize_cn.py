@@ -252,7 +252,9 @@ WORD_SYNONYMS = {
     # Cycle 80: dropped '与此同时' — it is in detect_cn's mechanical_connectors
     # pattern (weight 10), so substituting '同时' with '与此同时' raises the
     # AI score (self-defeating). Pool 4→3.
-    '同时': ['此外', '另外', '并且'],
+    # Cycle 80 dropped '与此同时'. Cycle 94 swap '此外'/'另外'
+    # (logic_connectors w=7 self-defeat) for '同样' / '一并' (clean).
+    '同时': ['并且', '同样', '一并'],
     '通过': ['借助', '凭借', '经由', '依靠'],
     '根据': ['按照', '依据', '参照', '依照'],
     # '有效' removed: word is often adjectival (有效证件/有效身份/有效期),
