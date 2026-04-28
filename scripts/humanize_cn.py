@@ -249,7 +249,10 @@ WORD_SYNONYMS = {
     '采用': ['选用', '沿用'],
     # ── 副词 / 程度 ──
     '目前': ['眼下', '当前', '现阶段', '如今'],
-    '同时': ['与此同时', '此外', '另外', '并且'],
+    # Cycle 80: dropped '与此同时' — it is in detect_cn's mechanical_connectors
+    # pattern (weight 10), so substituting '同时' with '与此同时' raises the
+    # AI score (self-defeating). Pool 4→3.
+    '同时': ['此外', '另外', '并且'],
     '通过': ['借助', '凭借', '经由', '依靠'],
     '根据': ['按照', '依据', '参照', '依照'],
     # '有效' removed: word is often adjectival (有效证件/有效身份/有效期),
