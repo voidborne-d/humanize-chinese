@@ -157,7 +157,9 @@ WORD_SYNONYMS = {
     '因此': ['因而', '为此', '故而'],
     # Cycle 97: dropped '不过' from both — logic_connectors w=7 self-defeat.
     '然而': ['但', '可是', '只是'],
-    '但是': ['可是', '只是', '然而'],
+    # Cycle 98: dropped '然而' (logic_connectors w=7 self-defeat — replacing
+    # 但是 with 然而 just trades one detected connector for another).
+    '但是': ['可是', '只是'],
     '虽然': ['尽管', '即便', '就算', '纵然'],
     # Cycle 96: dropped '因此' (logic_connectors w=7 self-defeat — replacing
     # 所以 with 因此 just trades one detected connector for another).
