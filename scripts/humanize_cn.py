@@ -895,6 +895,106 @@ def _boost_one_para_via_merge(para, target_cv):
     return ''.join(s + p for s, p in pairs)
 
 
+def reduce_cross_para_3gram_repeat(text, max_replacements=4, scene='general',
+                                   style=None, seed=None):
+    """v5 P1.3 humanize counter-measure for cross_para_3gram_repeat
+    (LR coef +2.24 on longform).
+
+    Walks paragraphs, identifies 2-char words (CiLin keys) that appear
+    in 2+ paragraphs, and replaces ONE occurrence in a later paragraph
+    with a CiLin synonym. Replacing a 2-char word breaks two
+    overlapping 3-grams, so even a handful of substitutions measurably
+    drops the cross-paragraph trigram repetition ratio.
+
+    Scene-aware via the same blacklists as expand_with_cilin
+    (_AI_PATTERN_BLACKLIST / _CILIN_BLACKLIST / ACADEMIC_BLACKLIST_CANDIDATES
+    / NOVEL_BLACKLIST_CANDIDATES). Skips when the scene/style filters
+    yield no usable synonym.
+
+    Prefers words in exactly 2 paragraphs (each replacement directly
+    drops a repeat — words spanning 3+ paragraphs need more sub work
+    to clear).
+    """
+    if seed is not None:
+        random.seed(seed)
+
+    cilin = _load_cilin()
+    if not cilin:
+        return text
+
+    paragraphs = text.split('\n\n')
+    if len(paragraphs) < 3:
+        return text
+
+    cilin_keys = set(cilin.keys())
+    para_words = []
+    for p in paragraphs:
+        chars = re.findall(r'[一-鿿]', p)
+        words_in_p = set()
+        for i in range(len(chars) - 1):
+            w = chars[i] + chars[i + 1]
+            if w in cilin_keys:
+                words_in_p.add(w)
+        para_words.append(words_in_p)
+
+    word_paras = {}
+    for i, words in enumerate(para_words):
+        for w in words:
+            word_paras.setdefault(w, []).append(i)
+
+    candidates = [(w, ps) for w, ps in word_paras.items() if len(ps) >= 2]
+    if not candidates:
+        return text
+
+    # Prefer words appearing in fewer paragraphs (each replacement
+    # there directly clears the repeat). Then random within tier.
+    candidates.sort(key=lambda x: len(x[1]))
+    # Shuffle within each tier of equal paragraph-count
+    tier_buckets = {}
+    for w, ps in candidates:
+        tier_buckets.setdefault(len(ps), []).append((w, ps))
+    for k in tier_buckets:
+        random.shuffle(tier_buckets[k])
+    ordered = []
+    for k in sorted(tier_buckets):
+        ordered.extend(tier_buckets[k])
+
+    new_paragraphs = list(paragraphs)
+    replaced = 0
+
+    for word, para_indices in ordered:
+        if replaced >= max_replacements:
+            break
+        synonyms = cilin.get(word, [])
+        if not synonyms:
+            continue
+        filtered = []
+        for c in synonyms:
+            if c in _AI_PATTERN_BLACKLIST:
+                continue
+            if c in _CILIN_BLACKLIST:
+                continue
+            if scene == 'academic' and c in ACADEMIC_BLACKLIST_CANDIDATES:
+                continue
+            if (scene == 'novel' or style == 'novel') and \
+                    c in NOVEL_BLACKLIST_CANDIDATES:
+                continue
+            filtered.append(c)
+        if not filtered:
+            continue
+        synonym = random.choice(filtered)
+        # Replace in the LAST occurrence paragraph (so the established
+        # term lands in earlier paragraphs and the variation shows up
+        # later — closer to how humans drift).
+        last_idx = para_indices[-1]
+        new_para = new_paragraphs[last_idx].replace(word, synonym, 1)
+        if new_para != new_paragraphs[last_idx]:
+            new_paragraphs[last_idx] = new_para
+            replaced += 1
+
+    return '\n\n'.join(new_paragraphs)
+
+
 _PARA_INTERJECTION_NEUTRAL = (
     '此点尚需进一步思考，简单的结论未必能完全成立。',
     '事情可能并不如表面所示那般简单，需要更细致地审视。',
@@ -1920,6 +2020,16 @@ def humanize(text, scene='general', aggressive=False, seed=None, best_of_n=DEFAU
     #   news     fired 10/10, LR avg -2.10 (3 down / 1 up / 6 same)
     text = insert_short_interjection_paragraph(text, target_cv=0.60,
                                                style=style, seed=seed)
+
+    # v5 P1.3 humanize counter-measure for cross_para_3gram_repeat (LR
+    # coef +2.24 on longform). Replaces a few CiLin-known 2-char words
+    # that recur across paragraphs with scene-filtered synonyms,
+    # breaking the cross-paragraph trigram repetition. n=20 sweep at
+    # max_replacements=4: fired 20/20, LR delta avg -1.65, zero
+    # regressions.
+    text = reduce_cross_para_3gram_repeat(text, max_replacements=4,
+                                          scene=scene, style=style,
+                                          seed=seed)
 
     # Final transition cap — AI overuses 首先/然而/此外/因此 etc, detect fires
     # density > 8/1000 chars. Cap at 6 to leave margin. Preserves text that's
