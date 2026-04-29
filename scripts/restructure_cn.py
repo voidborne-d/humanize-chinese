@@ -947,6 +947,16 @@ def insert_short_reactions(text, target_short_frac=None, max_per_paragraph=1, se
     Returns:
         text with 0 or more short reactions inserted
     """
+    # Academic guard (issue #7): "颇有道理。/事出有因。/有一定道理。" are
+    # essay/opinion register, not academic. Injecting them at academic
+    # paragraph ends reads as performative and several AIGC detectors
+    # (CNKI/VIP/Wanfang) carry these phrases as positive features. The
+    # short_frac signal that motivates this function is for HC3 general
+    # text vs AI; for academic, sentence-length diversification belongs to
+    # diversify_sentence_lengths / _shorten_long_sentences which split
+    # without introducing AI-tic vocabulary.
+    if scene == 'academic':
+        return text
     if seed is not None:
         random.seed(seed)
     # Narrative guard: "颇有道理/事出有因" reactions fit essay/opinion text but
@@ -956,7 +966,7 @@ def insert_short_reactions(text, target_short_frac=None, max_per_paragraph=1, se
     if _dialogue_density(text) >= 0.08:
         return text
     if target_short_frac is None:
-        target_short_frac = 0.22 if scene == 'academic' else 0.15
+        target_short_frac = 0.15
     paragraphs = text.split('\n\n')
     # Track reactions already inserted in this text. Without dedupe a sample
     # with many paragraphs can land "事出有因" 5 times (sample 16 audit) when
