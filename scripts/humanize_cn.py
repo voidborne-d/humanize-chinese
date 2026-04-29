@@ -1625,6 +1625,24 @@ def vary_paragraph_rhythm(text):
     if len(paragraphs) < 3:
         return text
 
+    # v5 P1.2 guard (cycle 143): if paragraph-length CV is already
+    # adequate (>=0.40, near human distribution), skip merge/split.
+    # cycle 142 found that further structural tweaks on already-varied
+    # paragraphs push the distribution back toward uniform — a stuck
+    # academic sample went from CV 0.405 to 0.320 after the full
+    # pipeline because a long paragraph got split, averaging the
+    # distribution down. Same threshold as compute_paragraph_length_cv
+    # consumes (>=20 cn chars per paragraph).
+    cn_lens = [len(re.findall(r'[一-鿿]', p)) for p in paragraphs]
+    valid_lens = [l for l in cn_lens if l >= 20]
+    if len(valid_lens) >= 3:
+        m_cn = sum(valid_lens) / len(valid_lens)
+        if m_cn > 0:
+            var = sum((l - m_cn) ** 2 for l in valid_lens) / len(valid_lens)
+            cv = (var ** 0.5) / m_cn
+            if cv >= 0.40:
+                return text
+
     lengths = [len(p) for p in paragraphs]
     avg_len = sum(lengths) / len(lengths) if lengths else 100
 
