@@ -968,6 +968,55 @@ def compute_entropy_uniformity(text):
     }
 
 
+def compute_paragraph_length_cv(text):
+    """
+    Coefficient of variation of paragraph lengths (Chinese-char count).
+
+    AI long-form text writes paragraphs of similar length; human
+    long-form alternates short and long paragraphs.
+
+    v5 calibration n=50 longform vs novel/news (2026-04-29):
+      AI mean 0.359, Human mean 0.742, Cohen's d = -1.49
+
+    Already used as a binary rule trigger in detect_cn at threshold 0.2
+    via inline computation (uniform_paragraphs). This function exposes
+    the same value as a continuous LR feature so the signal propagates
+    through fusion even on samples whose CV stays just above the
+    binary threshold.
+
+    Returns:
+        dict with:
+          - cv: paragraph length CV
+          - n_paragraphs: paragraphs counted (>=20 cn chars)
+          - mean_length: mean paragraph length (cn chars)
+    """
+    raw = re.split(r'\n\s*\n', text)
+    paragraphs = [p.strip() for p in raw
+                  if p.strip() and len(_extract_chinese(p.strip())) >= 20]
+
+    if len(paragraphs) < 3:
+        return {
+            'cv': 0.0,
+            'n_paragraphs': len(paragraphs),
+            'mean_length': 0.0,
+        }
+
+    lens = [len(_extract_chinese(p)) for p in paragraphs]
+    m = sum(lens) / len(lens)
+    if m == 0:
+        return {
+            'cv': 0.0,
+            'n_paragraphs': len(paragraphs),
+            'mean_length': 0.0,
+        }
+    var = sum((l - m) ** 2 for l in lens) / len(lens)
+    return {
+        'cv': (var ** 0.5) / m,
+        'n_paragraphs': len(paragraphs),
+        'mean_length': m,
+    }
+
+
 def compute_para_sent_len_cv(text):
     """
     Mean of per-paragraph sentence-length CV.
@@ -1076,6 +1125,13 @@ def analyze_text(text):
     # Per-paragraph sentence-length CV averaged (v5 P1 cycle 131,
     # longform calibration d = -2.08)
     para_slcv = compute_para_sent_len_cv(text)
+
+    # Paragraph-length CV (v5 P1.2 cycle 135, longform calibration
+    # d = -1.49). The binary trigger already fires in detect_cn at
+    # CV<0.2; this exposes the continuous value to LR fusion so the
+    # signal contributes on samples whose CV stays just above the rule
+    # threshold.
+    para_lcv = compute_paragraph_length_cv(text)
 
     # DivEye surprisal features — reuse log_probs from compute_perplexity
     diveye = compute_diveye_features(ppl_result.get('log_probs', []))
@@ -1240,6 +1296,7 @@ def analyze_text(text):
         'news': news,
         'char_mattr': char_mattr,
         'para_slcv': para_slcv,
+        'para_lcv': para_lcv,
         'uni_ppl': uni_ppl,
         'uni_tri_ratio': uni_tri_ratio,
         'indicators': indicators,
@@ -1290,6 +1347,7 @@ LR_FEATURE_NAMES = (
     'wiki_vs_primary',      # F-3 2026-04-22, HC3 d=1.13
     'news_vs_human',        # F-11 2026-04-22, HC3 d=1.20 (on 10-category news corpus)
     'para_sent_len_cv_avg', # v5 P1 2026-04-29, longform d=-2.08 (multi-paragraph only)
+    'paragraph_length_cv',  # v5 P1.2 2026-04-29, longform d=-1.49 (multi-paragraph only)
 )
 
 
@@ -1414,6 +1472,7 @@ def extract_feature_vector(text_or_analysis):
     wiki = analysis.get('wiki', {}) or {}
     news = analysis.get('news', {}) or {}
     para_slcv = analysis.get('para_slcv', {}) or {}
+    para_lcv = analysis.get('para_lcv', {}) or {}
 
     vec = [
         float(analysis.get('perplexity') or 0.0),
@@ -1439,6 +1498,7 @@ def extract_feature_vector(text_or_analysis):
         float(wiki.get('wiki_vs_primary') or 0.0),
         float(news.get('news_vs_human') or 0.0),
         float(para_slcv.get('mean_cv') or 0.0),
+        float(para_lcv.get('cv') or 0.0),
     ]
     return vec, list(LR_FEATURE_NAMES)
 
