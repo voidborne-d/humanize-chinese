@@ -220,7 +220,10 @@ WORD_SYNONYMS = {
     '组成': ['构成', '拼成', '组合', '凑成'],
     '形成': ['催生', '铸成', '生成', '酿成'],
     '获得': ['取得', '赢得', '得到', '揽获'],
-    '确定': ['敲定', '锁定', '明确', '定下'],
+    # cycle 164: dropped '确定' — substring matches inside 确定性 (37 hits)
+    # and 不确定性 (30 hits) which are technical noun terms; substitution
+    # produces broken '锁定性' / '明确性' / '不敲定性' etc. Same family of
+    # bug as the historical removals of '发现' / '存在' / '有效'.
     # '发现' removed: substring inside the 4-char idiom 案发现场 gets
     # corrupted into '案察觉场'/'案觉察场'/'案识破场' when the word-level
     # substitution crosses the idiom boundary. Same family of bug as '存在'
@@ -241,7 +244,9 @@ WORD_SYNONYMS = {
     # word-boundary awareness.
     '属于': ['归属', '算是', '属', '归入'],
     '考虑': ['斟酌', '权衡', '琢磨', '思量'],
-    '处理': ['打理', '应对', '料理', '处置'],
+    # cycle 164: dropped '处理' — substring matches inside 处理器 (12 hits
+    # in longform corpus, technical noun); substitution produces broken
+    # '处置器' / '打理器' / '应对器'. Same as 确定/发现/存在 above.
     '参与': ['加入', '介入', '参加', '投身'],
     '创造': ['缔造', '开创', '营造', '打造'],
     '描述': ['刻画', '勾勒', '叙述', '描绘'],
@@ -288,15 +293,22 @@ WORD_SYNONYMS = {
     '进一步': ['更', '再', '深入', '继续'],
     '充分': ['尽情', '透彻', '淋漓', '饱满'],
     '直接': ['径直', '当面', '立刻', '干脆'],
-    '特别': ['尤其', '格外', '极', '分外'],
+    # cycle 164: '特别' alts trimmed to '尤其' only — '格外'/'极'/'分外'
+    # all break inside 特别是 (56 hits in longform corpus, common
+    # transition) producing '格外是'/'极是'/'分外是' which read as
+    # ungrammatical. '尤其' is the one alt that survives the substring
+    # collision: '特别是' → '尤其是' is a valid rewrite.
+    '特别': ['尤其'],
     '一定': ['某种', '相当', '一些', '多少'],
     '必须': ['得', '务必', '非得', '须'],
     '可能': ['也许', '兴许', '或许', '大概'],
     # ── 名词 / 概念 ──
-    # '关键' alt removed: when source is '至关重要' (4-char idiom containing
-    # '重要' as substring), substitution gives '至关关键' (doubled-关 across
-    # word boundary). Other alts ('核心', '要紧', '紧要') preserve the idiom.
-    '重要': ['核心', '要紧', '紧要'],
+    # cycle 164: dropped '重要' — substring matches inside 重要性 (28 hits)
+    # and 至关重要 (16 hits) and 重要性 → 核心性 / 要紧性 / 紧要性 is
+    # broken (none of those are standard Chinese nouns), 至关重要 → 至关
+    # 核心 also breaks the fixed idiom. The earlier '关键' alt was already
+    # dropped here (cycle ~57) for doubled-关; the remaining alts have the
+    # same compound-breakage bug just less visibly.
     # Cycle 60: dropped '醒目' (visually striking, not degree adverb).
     # Cycle 66: dropped '突出' too — 突出 is verb/adjective ('stick out /
     # prominent') and doesn't work as a degree adverb. Audit found 19
@@ -1909,9 +1921,9 @@ def diversify_vocabulary(text):
         '促进': ['推动', '带动'],
         '加强': ['强化', '增强'],
         '提高': ['提升', '增加'],
-        # '关键' alt removed: '至关重要' (4-char idiom) -> '至关关键' (doubled-关).
-        # Same idiom-substring boundary issue handled in WORD_SYNONYMS upstream.
-        '重要': ['核心'],
+        # cycle 164: dropped '重要' — same compound-breakage as
+        # WORD_SYNONYMS upstream (重要性 → 核心性, 至关重要 → 至关核心
+        # both broken).
     }
     
     for word, alts in diversity_map.items():
