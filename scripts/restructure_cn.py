@@ -39,7 +39,7 @@ def _build_templates():
 
     # ── 2. X在Y方面发挥着Z作用 ──
     templates.append((
-        re.compile(r'(?P<X>[^，,。]{2,15})在(?P<Y>[^，,。]{2,12})方面发挥着(?P<Z>[^，,。]{1,8})作用'),
+        re.compile(r'(?P<X>[^，,。\n]{2,15})在(?P<Y>[^，,。\n]{2,12})方面发挥着(?P<Z>[^，,。\n]{1,8})作用'),
         [
             lambda m: f'{m.group("Y")}方面，{m.group("X")}的{m.group("Z")}作用不容忽视',
             lambda m: f'就{m.group("Y")}而言，{m.group("X")}起到了{m.group("Z")}作用',
@@ -48,7 +48,7 @@ def _build_templates():
 
     # ── 3. 随着X的不断发展，Y正在Z ──
     templates.append((
-        re.compile(r'随着(?P<X>[^，,。]{2,20})的不断(?:发展|进步|演进|深入|推进)[^，,。]*[，,]\s*(?P<Y>[^，,。]{2,12})正在(?P<Z>[^。！？]{2,25})'),
+        re.compile(r'随着(?P<X>[^，,。\n]{2,20})的不断(?:发展|进步|演进|深入|推进)[^，,。\n]*[，,]\s*(?P<Y>[^，,。\n]{2,12})正在(?P<Z>[^。！？\n]{2,25})'),
         [
             lambda m: f'{m.group("Y")}正在{m.group("Z")}，这背后是{m.group("X")}的持续推动',
             lambda m: f'{m.group("X")}持续推进，{m.group("Y")}也因此{m.group("Z")}',
@@ -65,7 +65,7 @@ def _build_templates():
 
     # ── 5. X对Y具有Z意义 ── (negative lookahead on 于 to avoid "对于" split)
     templates.append((
-        re.compile(r'(?P<X>[^，,。]{2,15})对(?!于)(?P<Y>[^，,。]{2,12})具有(?P<Z>[^，,。]{1,10})意义'),
+        re.compile(r'(?P<X>[^，,。\n]{2,15})对(?!于)(?P<Y>[^，,。\n]{2,12})具有(?P<Z>[^，,。\n]{1,10})意义'),
         [
             lambda m: f'从{m.group("Y")}的角度看，{m.group("X")}的{m.group("Z")}意义值得关注',
             lambda m: f'{m.group("X")}之于{m.group("Y")}，有着{m.group("Z")}意义',
@@ -77,7 +77,7 @@ def _build_templates():
     # is a frequent idiom suffix). '{X}就能{Z}' avoids the boundary clash
     # and keeps the same modal sense.
     templates.append((
-        re.compile(r'(?P<X>[^，,。]{2,15})能够根据(?P<Y>[^，,。]{2,20})[，,]\s*(?P<Z>[^。！？]{2,25})'),
+        re.compile(r'(?P<X>[^，,。\n]{2,15})能够根据(?P<Y>[^，,。\n]{2,20})[，,]\s*(?P<Z>[^。！？\n]{2,25})'),
         [
             lambda m: f'根据{m.group("Y")}，{m.group("X")}就能{m.group("Z")}',
             lambda m: f'{m.group("X")}会参考{m.group("Y")}来{m.group("Z")}',
@@ -97,7 +97,7 @@ def _build_templates():
 
     # ── 8. 基于X的Y能够Z ──
     templates.append((
-        re.compile(r'基于(?P<X>[^，,。]{2,15})的(?P<Y>[^，,。]{2,12})能够(?P<Z>[^。！？]{2,25})'),
+        re.compile(r'基于(?P<X>[^，,。\n]{2,15})的(?P<Y>[^，,。\n]{2,12})能够(?P<Z>[^。！？\n]{2,25})'),
         [
             lambda m: f'以{m.group("X")}为基础，{m.group("Y")}可以做到{m.group("Z")}',
             lambda m: f'{m.group("Y")}依托{m.group("X")}，实现了{m.group("Z")}',
@@ -106,7 +106,7 @@ def _build_templates():
 
     # ── 9. X的出现也Y了Z ──
     templates.append((
-        re.compile(r'(?P<X>[^，,。]{2,15})的(?:出现|引入|发展|应用)(?:也|更是)?(?:极大地|大大|显著)?(?P<Y>提高|提升|改善|增强|促进|推动|加速)了(?P<Z>[^。！？]{2,20})'),
+        re.compile(r'(?P<X>[^，,。\n]{2,15})的(?:出现|引入|发展|应用)(?:也|更是)?(?:极大地|大大|显著)?(?P<Y>提高|提升|改善|增强|促进|推动|加速)了(?P<Z>[^。！？\n]{2,20})'),
         [
             lambda m: f'{m.group("Z")}得到了{m.group("Y").replace("提高","提升").replace("促进","推动")}，{m.group("X")}功不可没',
             lambda m: f'有了{m.group("X")}，{m.group("Z")}明显{m.group("Y").replace("提高","好转").replace("促进","加快")}',
@@ -132,7 +132,7 @@ def _build_templates():
 
     # ── 12. X使得/让Y成为可能 ──
     templates.append((
-        re.compile(r'(?P<X>[^，,。]{2,15})(?:使得|让)(?P<Y>[^，,。]{2,20})(?:成为可能|变得可能|得以实现)'),
+        re.compile(r'(?P<X>[^，,。\n]{2,15})(?:使得|让)(?P<Y>[^，,。\n]{2,20})(?:成为可能|变得可能|得以实现)'),
         [
             lambda m: f'{m.group("Y")}之所以能实现，离不开{m.group("X")}',
             lambda m: f'正是{m.group("X")}，{m.group("Y")}才有了实现的基础',
@@ -145,7 +145,7 @@ def _build_templates():
     # → '阵地地位'). Use suffixes that don't share their first char with
     # common Z+W endings.
     templates.append((
-        re.compile(r'(?P<X>[^，,。]{2,15})是(?P<Y>[^，,。]{2,12})的(?P<Z>重要|关键|核心|主要)(?P<W>[^，,。！？]{1,5})'),
+        re.compile(r'(?P<X>[^，,。\n]{2,15})是(?P<Y>[^，,。\n]{2,12})的(?P<Z>重要|关键|核心|主要)(?P<W>[^，,。！？]{1,5})'),
         [
             lambda m: f'就{m.group("Y")}而言，{m.group("X")}作为{m.group("W")}{m.group("Z").replace("重要","举足轻重").replace("关键","至关重要").replace("核心","不可或缺").replace("主要","相当突出")}',
         ]
@@ -153,7 +153,7 @@ def _build_templates():
 
     # ── 14. 研究表明/研究发现，X ──
     templates.append((
-        re.compile(r'(?:研究表明|研究发现|研究显示)[，,]\s*(?P<X>[^。！？]{5,40})'),
+        re.compile(r'(?:研究表明|研究发现|研究显示)[，,]\s*(?P<X>[^。！？\n]{5,40})'),
         [
             lambda m: f'从已有研究来看，{m.group("X")}',
             lambda m: f'学界的研究指向一个结论：{m.group("X")}',
@@ -162,7 +162,7 @@ def _build_templates():
 
     # ── 15. 与此同时/同时，X也Y ──
     templates.append((
-        re.compile(r'(?:与此同时|同时)[，,]\s*(?P<X>[^，,。]{2,15})(?:也|还|更)(?P<Y>[^。！？]{2,25})'),
+        re.compile(r'(?:与此同时|同时)[，,]\s*(?P<X>[^，,。\n]{2,15})(?:也|还|更)(?P<Y>[^。！？\n]{2,25})'),
         [
             lambda m: f'另一方面，{m.group("X")}{m.group("Y")}',
             lambda m: f'{m.group("X")}同样{m.group("Y")}，这一点也不容忽视',
@@ -171,7 +171,7 @@ def _build_templates():
 
     # ── 16. X对Y产生了重要影响 ── (negative lookahead on 于)
     templates.append((
-        re.compile(r'(?P<X>[^，,。]{2,15})对(?!于)(?P<Y>[^，,。]{2,12})产生了(?:重要|深远|显著|明显)?影响'),
+        re.compile(r'(?P<X>[^，,。\n]{2,15})对(?!于)(?P<Y>[^，,。\n]{2,12})产生了(?:重要|深远|显著|明显)?影响'),
         [
             lambda m: f'{m.group("X")}对{m.group("Y")}的影响不容忽视',
             lambda m: f'{m.group("Y")}受到{m.group("X")}的牵动',
@@ -180,7 +180,7 @@ def _build_templates():
 
     # ── 17. 可以看出/可见，X ──
     templates.append((
-        re.compile(r'(?:可以看出|可见|不难看出|显而易见)[，,]\s*(?P<X>[^。！？]{5,40})'),
+        re.compile(r'(?:可以看出|可见|不难看出|显而易见)[，,]\s*(?P<X>[^。！？\n]{5,40})'),
         [
             lambda m: f'从中可以看出，{m.group("X")}',
             lambda m: f'大致上可以看出，{m.group("X")}',
@@ -189,7 +189,7 @@ def _build_templates():
 
     # ── 18. 通过对X的分析/研究 ──
     templates.append((
-        re.compile(r'通过对(?P<X>[^，,。]{2,15})的(?:分析|研究|考察|探讨)[，,]\s*(?P<Y>[^。！？]{5,40})'),
+        re.compile(r'通过对(?P<X>[^，,。\n]{2,15})的(?:分析|研究|考察|探讨)[，,]\s*(?P<Y>[^。！？\n]{5,40})'),
         [
             lambda m: f'对{m.group("X")}加以分析后，{m.group("Y")}',
             lambda m: f'围绕{m.group("X")}展开分析，{m.group("Y")}',
@@ -198,7 +198,7 @@ def _build_templates():
 
     # ── 19. X主要体现在Y ──
     templates.append((
-        re.compile(r'(?P<X>[^，,。]{2,15})主要体现在(?P<Y>[^。！？]{2,30})'),
+        re.compile(r'(?P<X>[^，,。\n]{2,15})主要体现在(?P<Y>[^。！？\n]{2,30})'),
         [
             lambda m: f'{m.group("X")}集中表现为{m.group("Y")}',
             lambda m: f'{m.group("X")}的表征在于{m.group("Y")}',
@@ -207,7 +207,7 @@ def _build_templates():
 
     # ── 20. X有助于Y的实现/提升 ──
     templates.append((
-        re.compile(r'(?P<X>[^，,。]{2,15})有助于(?P<Y>[^，,。]{2,20})的(?:实现|提升|改善|促进|推动)'),
+        re.compile(r'(?P<X>[^，,。\n]{2,15})有助于(?P<Y>[^，,。\n]{2,20})的(?:实现|提升|改善|促进|推动)'),
         [
             lambda m: f'{m.group("X")}有利于{m.group("Y")}',
             lambda m: f'{m.group("X")}对{m.group("Y")}的达成有所促进',
@@ -216,7 +216,7 @@ def _build_templates():
 
     # ── 21. X成为Y的重要/关键手段 ──
     templates.append((
-        re.compile(r'(?P<X>[^，,。]{2,15})成为(?P<Y>[^，,。]{2,12})的(?:重要|关键|主要)(?P<Z>手段|方式|途径|方法|工具)'),
+        re.compile(r'(?P<X>[^，,。\n]{2,15})成为(?P<Y>[^，,。\n]{2,12})的(?:重要|关键|主要)(?P<Z>手段|方式|途径|方法|工具)'),
         [
             lambda m: f'{m.group("X")}是{m.group("Y")}的要紧{m.group("Z")}',
             lambda m: f'{m.group("X")}作为{m.group("Y")}的关键{m.group("Z")}',
@@ -225,7 +225,7 @@ def _build_templates():
 
     # ── 22. X呈现出Y的趋势/特点 ──
     templates.append((
-        re.compile(r'(?P<X>[^，,。]{2,15})呈现出(?P<Y>[^，,。]{2,15})的(?P<Z>趋势|特点|态势|特征)'),
+        re.compile(r'(?P<X>[^，,。\n]{2,15})呈现出(?P<Y>[^，,。\n]{2,15})的(?P<Z>趋势|特点|态势|特征)'),
         [
             lambda m: f'{m.group("X")}渐现{m.group("Y")}的{m.group("Z")}',
             lambda m: f'{m.group("X")}显出{m.group("Y")}的{m.group("Z")}',
@@ -234,7 +234,7 @@ def _build_templates():
 
     # ── 23. X受到Y的影响/制约 ──
     templates.append((
-        re.compile(r'(?P<X>[^，,。]{2,15})受到(?P<Y>[^，,。]{2,12})的(?:影响|制约|限制|驱动)'),
+        re.compile(r'(?P<X>[^，,。\n]{2,15})受到(?P<Y>[^，,。\n]{2,12})的(?:影响|制约|限制|驱动)'),
         [
             lambda m: f'{m.group("Y")}对{m.group("X")}有其作用',
             lambda m: f'{m.group("X")}因{m.group("Y")}而变动',
@@ -243,7 +243,7 @@ def _build_templates():
 
     # ── 24. X为Y奠定/打下了基础 ──
     templates.append((
-        re.compile(r'(?P<X>[^，,。]{2,15})为(?P<Y>[^，,。]{2,12})(?:奠定|打下)了(?:坚实|重要|良好)?基础'),
+        re.compile(r'(?P<X>[^，,。\n]{2,15})为(?P<Y>[^，,。\n]{2,12})(?:奠定|打下)了(?:坚实|重要|良好)?基础'),
         [
             lambda m: f'{m.group("X")}给{m.group("Y")}打下了基础',
             lambda m: f'有了{m.group("X")}，{m.group("Y")}才有开端',
@@ -252,7 +252,7 @@ def _build_templates():
 
     # ── 25. X离不开Y ──
     templates.append((
-        re.compile(r'(?P<X>[^，,。]{2,15})离不开(?P<Y>[^，,。]{2,20})'),
+        re.compile(r'(?P<X>[^，,。\n]{2,15})离不开(?P<Y>[^，,。\n]{2,20})'),
         [
             lambda m: f'{m.group("X")}少不了{m.group("Y")}',
             lambda m: f'没有{m.group("Y")}，{m.group("X")}便难以成立',
@@ -261,7 +261,7 @@ def _build_templates():
 
     # ── 26. X起到了重要/关键作用 ──
     templates.append((
-        re.compile(r'(?P<X>[^，,。]{2,15})起到了(?:重要|关键|核心|积极)(?P<Y>作用|影响|意义)'),
+        re.compile(r'(?P<X>[^，,。\n]{2,15})起到了(?:重要|关键|核心|积极)(?P<Y>作用|影响|意义)'),
         [
             lambda m: f'{m.group("X")}起了要紧的{m.group("Y")}',
             lambda m: f'在这里，{m.group("X")}的{m.group("Y")}不小',
@@ -270,7 +270,7 @@ def _build_templates():
 
     # ── 27. 可以预见，X ──
     templates.append((
-        re.compile(r'(?:可以预见|不难预见|可以预期)[，,]\s*(?P<X>[^。！？]{5,40})'),
+        re.compile(r'(?:可以预见|不难预见|可以预期)[，,]\s*(?P<X>[^。！？\n]{5,40})'),
         [
             lambda m: f'大致可以预计，{m.group("X")}',
             lambda m: f'由此不难推断，{m.group("X")}',
@@ -279,7 +279,7 @@ def _build_templates():
 
     # ── 28. 值得关注的是X ──
     templates.append((
-        re.compile(r'值得(?:关注|注意|留意|重视)的是[，,]\s*(?P<X>[^。！？]{5,40})'),
+        re.compile(r'值得(?:关注|注意|留意|重视)的是[，,]\s*(?P<X>[^。！？\n]{5,40})'),
         [
             lambda m: f'{m.group("X")}值得留意',
             lambda m: f'有一点值得一提，{m.group("X")}',
@@ -288,7 +288,7 @@ def _build_templates():
 
     # ── 29. 从X来看/角度看 ──
     templates.append((
-        re.compile(r'从(?P<X>[^，,。]{2,15})(?:来看|的角度看|的视角看)[，,]\s*(?P<Y>[^。！？]{5,40})'),
+        re.compile(r'从(?P<X>[^，,。\n]{2,15})(?:来看|的角度看|的视角看)[，,]\s*(?P<Y>[^。！？\n]{5,40})'),
         [
             lambda m: f'就{m.group("X")}而言，{m.group("Y")}',
             lambda m: f'{m.group("X")}的层面上，{m.group("Y")}',
@@ -297,7 +297,7 @@ def _build_templates():
 
     # ── 30. 这一现象/结果反映出X ──
     templates.append((
-        re.compile(r'这一?(?:现象|结果|情况|趋势)反映出(?P<X>[^。！？]{5,40})'),
+        re.compile(r'这一?(?:现象|结果|情况|趋势)反映出(?P<X>[^。！？\n]{5,40})'),
         [
             lambda m: f'这种情况照出{m.group("X")}',
             lambda m: f'由此可以看出{m.group("X")}',
@@ -306,7 +306,7 @@ def _build_templates():
 
     # ── 31. 这说明/表明/意味着X ──
     templates.append((
-        re.compile(r'这(?:说明|表明|意味着|反映)(?P<X>[^。！？]{5,40})'),
+        re.compile(r'这(?:说明|表明|意味着|反映)(?P<X>[^。！？\n]{5,40})'),
         [
             lambda m: f'也就是说，{m.group("X")}',
             lambda m: f'此即{m.group("X")}',
@@ -315,7 +315,7 @@ def _build_templates():
 
     # ── 32. X已经成为Y ──
     templates.append((
-        re.compile(r'(?P<X>[^，,。]{2,15})已(?:经)?成为(?P<Y>[^。！？]{2,25})'),
+        re.compile(r'(?P<X>[^，,。\n]{2,15})已(?:经)?成为(?P<Y>[^。！？\n]{2,25})'),
         [
             lambda m: f'{m.group("X")}如今是{m.group("Y")}',
             lambda m: f'{m.group("X")}现在已是{m.group("Y")}',
@@ -324,7 +324,7 @@ def _build_templates():
 
     # ── 33. X越来越Y ──
     templates.append((
-        re.compile(r'(?P<X>[^，,。]{2,15})越来越(?P<Y>[^，,。]{1,10})'),
+        re.compile(r'(?P<X>[^，,。\n]{2,15})越来越(?P<Y>[^，,。\n]{1,10})'),
         [
             lambda m: f'{m.group("X")}日渐{m.group("Y")}',
             lambda m: f'{m.group("X")}愈加{m.group("Y")}',
@@ -333,7 +333,7 @@ def _build_templates():
 
     # ── 34. X与Y密切相关 / X与Y的关系 ──
     templates.append((
-        re.compile(r'(?P<X>[^，,。]{2,12})(?:与|和)(?P<Y>[^，,。]{2,12})密切相关'),
+        re.compile(r'(?P<X>[^，,。\n]{2,12})(?:与|和)(?P<Y>[^，,。\n]{2,12})密切相关'),
         [
             lambda m: f'{m.group("X")}和{m.group("Y")}关系密切',
             lambda m: f'{m.group("X")}跟{m.group("Y")}紧密相连',
@@ -342,7 +342,7 @@ def _build_templates():
 
     # ── 35. X需要Y ──（仅在句首或主语明确时）
     templates.append((
-        re.compile(r'^(?P<X>[\u4e00-\u9fff]{2,10})需要(?P<Y>[^。！？]{2,30})'),
+        re.compile(r'^(?P<X>[\u4e00-\u9fff]{2,10})需要(?P<Y>[^。！？\n]{2,30})'),
         [
             lambda m: f'{m.group("X")}少不了{m.group("Y")}',
             lambda m: f'{m.group("X")}得{m.group("Y")}',
@@ -351,7 +351,7 @@ def _build_templates():
 
     # ── 36. X的重要性不容忽视 ──
     templates.append((
-        re.compile(r'(?P<X>[^，,。]{2,15})的(?:重要性|意义|价值|作用)不容忽视'),
+        re.compile(r'(?P<X>[^，,。\n]{2,15})的(?:重要性|意义|价值|作用)不容忽视'),
         [
             lambda m: f'{m.group("X")}不容忽视',
             lambda m: f'{m.group("X")}不可小觑',
@@ -360,7 +360,7 @@ def _build_templates():
 
     # ── 37. X将带来/产生Y ──
     templates.append((
-        re.compile(r'(?P<X>[^，,。]{2,15})将(?:带来|产生|引发|催生)(?P<Y>[^。！？]{2,25})'),
+        re.compile(r'(?P<X>[^，,。\n]{2,15})将(?:带来|产生|引发|催生)(?P<Y>[^。！？\n]{2,25})'),
         [
             lambda m: f'{m.group("X")}会带来{m.group("Y")}',
             lambda m: f'{m.group("X")}可能引出{m.group("Y")}',
@@ -369,7 +369,7 @@ def _build_templates():
 
     # ── 38. 根据X，Y ──
     templates.append((
-        re.compile(r'^根据(?P<X>[^，,。]{2,15})[，,]\s*(?P<Y>[^。！？]{5,40})'),
+        re.compile(r'^根据(?P<X>[^，,。\n]{2,15})[，,]\s*(?P<Y>[^。！？\n]{5,40})'),
         [
             lambda m: f'按{m.group("X")}来看，{m.group("Y")}',
             lambda m: f'依{m.group("X")}，{m.group("Y")}',
@@ -378,7 +378,7 @@ def _build_templates():
 
     # ── 39. X具有广阔的Y前景/空间 ──
     templates.append((
-        re.compile(r'(?P<X>[^，,。]{2,15})具有(?:广阔|广泛|巨大|显著)的(?P<Y>[^，,。]{1,6})(?:前景|空间|潜力|价值)'),
+        re.compile(r'(?P<X>[^，,。\n]{2,15})具有(?:广阔|广泛|巨大|显著)的(?P<Y>[^，,。\n]{1,6})(?:前景|空间|潜力|价值)'),
         [
             lambda m: f'{m.group("X")}在{m.group("Y")}上大有可为',
             lambda m: f'{m.group("X")}的{m.group("Y")}潜力仍待挖掘',
@@ -387,7 +387,7 @@ def _build_templates():
 
     # ── 40. 不仅如此，X ──
     templates.append((
-        re.compile(r'^不仅如此[，,]\s*(?P<X>[^。！？]{5,40})'),
+        re.compile(r'^不仅如此[，,]\s*(?P<X>[^。！？\n]{5,40})'),
         [
             lambda m: f'此外，{m.group("X")}',
             lambda m: f'还有一点，{m.group("X")}',
@@ -396,7 +396,7 @@ def _build_templates():
 
     # ── 41. 在X的Y下，Z（背景/情况/影响/指导/推动）── D-2 / cycle 42
     templates.append((
-        re.compile(r'在(?P<X>[^，,。]{2,15})的(?P<Y>背景|情况|影响|指导|推动|框架)下[，,]\s*(?P<Z>[^。！？]{5,40})'),
+        re.compile(r'在(?P<X>[^，,。\n]{2,15})的(?P<Y>背景|情况|影响|指导|推动|框架)下[，,]\s*(?P<Z>[^。！？\n]{5,40})'),
         [
             lambda m: f'{m.group("X")}的{m.group("Y")}下，{m.group("Z")}',
             lambda m: f'{m.group("Z")}——这正是{m.group("X")}的{m.group("Y")}造成的',
@@ -405,7 +405,7 @@ def _build_templates():
 
     # ── 42. 研究表明/研究发现 X ── D-2 / cycle 42
     templates.append((
-        re.compile(r'^(?:研究|数据|调查|分析)(?:表明|显示|发现|揭示|指出)[，,]?\s*(?P<X>[^。！？]{5,40})'),
+        re.compile(r'^(?:研究|数据|调查|分析)(?:表明|显示|发现|揭示|指出)[，,]?\s*(?P<X>[^。！？\n]{5,40})'),
         [
             lambda m: f'有研究显示，{m.group("X")}',
             lambda m: f'实际数据里，{m.group("X")}',
@@ -414,7 +414,7 @@ def _build_templates():
 
     # ── 43. X取决于Y ── D-2 / cycle 42（HC3-mined 高频）
     templates.append((
-        re.compile(r'(?P<X>[^，,。]{2,20})取决于(?P<Y>[^。！？]{2,25})'),
+        re.compile(r'(?P<X>[^，,。\n]{2,20})取决于(?P<Y>[^。！？\n]{2,25})'),
         [
             lambda m: f'{m.group("X")}要看{m.group("Y")}',
             lambda m: f'{m.group("X")}跟{m.group("Y")}有关',
@@ -423,7 +423,7 @@ def _build_templates():
 
     # ── 44. X将/已经成为Y ── D-2 / cycle 42
     templates.append((
-        re.compile(r'(?P<X>[^，,。]{2,15})(?:将|已经|正在|逐渐)成为(?P<Y>[^。！？]{2,25})'),
+        re.compile(r'(?P<X>[^，,。\n]{2,15})(?:将|已经|正在|逐渐)成为(?P<Y>[^。！？\n]{2,25})'),
         [
             lambda m: f'{m.group("X")}正转变为{m.group("Y")}',
             lambda m: f'{m.group("X")}这条路，通向{m.group("Y")}',
@@ -432,7 +432,7 @@ def _build_templates():
 
     # ── 45. 通过对X的Y，Z（academic analysis 套路）── D-2 / cycle 42
     templates.append((
-        re.compile(r'^通过对(?P<X>[^，,。]{2,20})的(?P<Y>分析|研究|探讨|考察|梳理)[，,]\s*(?P<Z>[^。！？]{5,40})'),
+        re.compile(r'^通过对(?P<X>[^，,。\n]{2,20})的(?P<Y>分析|研究|探讨|考察|梳理)[，,]\s*(?P<Z>[^。！？\n]{5,40})'),
         [
             lambda m: f'梳理{m.group("X")}后发现，{m.group("Z")}',
             lambda m: f'把{m.group("X")}{m.group("Y")}一番，{m.group("Z")}',
@@ -538,7 +538,7 @@ def split_long_sentences(text):
         # 尝试在"不仅...还/也"处拆分
         # before 必须是短的无内部逗号的主语（2-10 中文字），否则拆分会把整段复制。
         # 例：避免 "智能评估系统能够多维度地评判学生的综合素质，不仅..." 被当作 before 整段复制。
-        m = re.search(r'(?P<before>[\u4e00-\u9fff]{2,10})不仅(?P<A>[^，,。]{2,25})[，,]\s*(?:还|也|更)(?P<B>.+)', segment)
+        m = re.search(r'(?P<before>[\u4e00-\u9fff]{2,10})不仅(?P<A>[^，,。\n]{2,25})[，,]\s*(?:还|也|更)(?P<B>.+)', segment)
         if m and random.random() < 0.5 and '\n\n' not in m.group(0):
             # 确认 match 起始就是 before（即 before 前面没有其它句子内容，是真正的主语位）
             if m.start() == 0 or segment[m.start() - 1] in '，。！？':
