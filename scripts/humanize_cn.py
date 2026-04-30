@@ -174,14 +174,20 @@ WORD_SYNONYMS = {
     '进行': ['开展', '实施', '做', '搞'],
     '实现': ['达成', '做到', '完成', '办到'],
     '提高': ['提升', '增强', '改善', '拉高'],
-    '发展': ['推进', '进展', '演进', '推动'],
+    # cycle 160: dropped 演进 — fixed term '发展中国家' becomes
+    # '演进中国家' which reads broken (developing country, not
+    # evolving). Other 发展 contexts can substitute via 推进/进展/推动.
+    '发展': ['推进', '进展', '推动'],
     # '影响' removed: the idiom slot 「在 X 影响下」 is high-frequency in
     # both academic and 玄幻 register, and every candidate breaks it —
     # '波及'/'左右' are verb-only ('在...左右下' / '在...波及下' are
     # ungrammatical), '触动' is instantaneous-emotional ('在...触动下'
     # reads as 在...刺激下 but awkward), only '冲击' fits the slot. Same
     # ambiguity as the historical removals of '存在' / '有效' / '发现'.
-    '研究': ['探究', '考察', '审视', '钻研'],
+    # cycle 160: dropped 考察 — '研究表明' commonly substituted to
+    # '考察表明', which reads off-register (考察 = inspection visit).
+    # Audit found in deepseek academic sample.
+    '研究': ['探究', '审视', '钻研'],
     '表明': ['显示', '说明', '反映', '揭示'],
     '认为': ['觉得', '以为', '判断', '主张'],
     '需要': ['有必要', '须', '要', '得'],
