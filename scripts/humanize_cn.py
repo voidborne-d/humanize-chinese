@@ -451,6 +451,26 @@ _CILIN_BLACKLIST = {
     '剖解', '解构',
     # Redundant / unnatural
     '显要', '要害', '紧要',
+    # cycle 150 quality audit additions —— cilin synonyms that broke
+    # semantics in real bn=10 humanize output across academic / novel
+    # / review samples. each entry: source word → bad synonym observed.
+    # Poetic / descriptive for 最高 ("highest" — quantitative)
+    '万丈', '亭亭', '凌云', '参天', '摩天', '高高的',
+    # Wrong scale / register for 团队 ("team")
+    '团伙', '集团',
+    # Technical / wrong-POS for 核心 ("core")
+    '主从', '为主',
+    # Assembly / event mismatch for 会议 ("meeting")
+    '集会',
+    # Specific-context for 完成 ("complete")
+    '交卷', '到位', '姣好', '完了', '完事',
+    # Wrong meaning for 问题 ("problem/issue")
+    '主焦点', '事端', '关节', '关子',
+    # Wrong meaning for 进行 ("conduct")
+    '前进', '行进',
+    # POS / meaning mismatch found in cycle 150 quality audit
+    '容许',  # replaces 可能 — verb instead of modal
+    '呈上',  # replaces 提供 — overly formal "submit upward"
 }
 
 
