@@ -801,6 +801,18 @@ _SHORT_REACTIONS_NEUTRAL = [
     '的确如此。', '确实是这样。',
 ]
 
+
+# cycle 151: formal-register variant for markdown-headered structured
+# documents (academic surveys, technical articles). The neutral pool's
+# "颇有道理。" / "各有说法。" reads off-register inside formal prose;
+# these entries keep the short_frac LR signal while not breaking
+# academic register.
+_SHORT_REACTIONS_FORMAL = [
+    '诚然如此。', '其理可循。', '尚需思辨。', '值得审视。',
+    '确有依据。', '可见一斑。', '诚有道理。', '理应如此。',
+    '尚待考证。', '不无道理。', '可资借鉴。', '值得深思。',
+]
+
 _SHORT_REACTIONS_CASUAL = [
     '真是这样。', '我这么认为。', '我觉得吧。', '可能吧。',
     '大概是这样。', '应该差不多。', '是这个理。', '有道理。',
@@ -955,6 +967,18 @@ def insert_short_reactions(text, target_short_frac=None, max_per_paragraph=1, se
     # essay-style text that happens to quote a source.
     if _dialogue_density(text) >= 0.08:
         return text
+    # Formal-article routing (cycle 151): markdown-headered structured
+    # documents (academic surveys, technical articles) get the formal
+    # reaction pool instead of the neutral one — keeps the short_frac
+    # LR signal while not breaking academic register with "颇有道理。"
+    # / "各有说法。" insertions. The pool toggle is signaled to
+    # _insert_reactions_in_paragraph via the 'scene' kwarg ("formal"),
+    # so existing 'general' / 'social' / 'academic' paths are
+    # unchanged.
+    n_md_headers = sum(1 for line in text.split('\n')
+                       if re.match(r'^\s*#{1,6}\s', line))
+    if n_md_headers >= 2 and scene != 'social':
+        scene = 'formal'
     if target_short_frac is None:
         target_short_frac = 0.22 if scene == 'academic' else 0.15
     paragraphs = text.split('\n\n')
@@ -1009,12 +1033,15 @@ def _insert_reactions_in_paragraph(p, target, max_per, min_sentences=3, scene='g
         gap = max(0.0, target - current_short_frac)
         prob = min(0.85, 0.35 + gap * 3.0)
     if random.random() < prob:
+        # cycle 151: 'formal' scene routes to the formal-register pool
+        pool = (_SHORT_REACTIONS_FORMAL if scene == 'formal'
+                else _SHORT_REACTIONS_NEUTRAL)
         if used is not None:
-            avail = [r for r in _SHORT_REACTIONS_NEUTRAL if r not in used]
+            avail = [r for r in pool if r not in used]
             if not avail:
-                avail = _SHORT_REACTIONS_NEUTRAL  # fallback when pool exhausted
+                avail = pool  # fallback when pool exhausted
         else:
-            avail = list(_SHORT_REACTIONS_NEUTRAL)
+            avail = list(pool)
         # Word-boundary doubling guard: skip reactions whose first char
         # matches the last char of the preceding sentence ("...安全性和有"
         # + "有一定道理" → "...和有有一定道理"). Falls back to the full
