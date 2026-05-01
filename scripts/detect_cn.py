@@ -309,12 +309,23 @@ def detect_patterns(text):
             })
     
     # ── Style: Repetitive sentence starters ──
+    # Cycle 184: skip markdown structural lines (## headers / - * bullets /
+    # 1. numbered) — they're SUPPOSED to share prefix, false-positive on
+    # academic / structured documents.
     if len(sentences) > 5:
         starters = defaultdict(int)
         for s in sentences:
             s = s.strip()
-            if len(s) >= 2:
-                starters[s[:2]] += 1
+            if len(s) < 2:
+                continue
+            # Skip markdown structural starts
+            if s.startswith('#') or s.startswith('- ') or s.startswith('* '):
+                continue
+            if s.startswith('**'):
+                continue
+            if re.match(r'^\d+[.。．)）]', s):
+                continue
+            starters[s[:2]] += 1
         max_repeat = max(starters.values()) if starters else 0
         if max_repeat >= 3:
             top_starter = max(starters, key=starters.get)
