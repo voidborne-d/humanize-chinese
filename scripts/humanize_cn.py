@@ -534,6 +534,15 @@ _CILIN_BLACKLIST = {
     '升迁',  # 提升 alt — same job-promotion narrow
     '提干',  # 提升 alt — same, military/cadre register
     '咱家',  # 个人 alt — colloquial regional ("us/me"), wrong meaning
+    '助长',  # 推动 alt — implies negative ("AI 推动教育" → "AI 助长教育" wrong, 助长 = abet/encourage-bad)
+    '事理',  # 道理 alt — archaic register, off in modern Chinese
+    '理路',  # 道理 alt — same archaic
+    '所以然',  # 道理 alt — too philosophical, off in modern Chinese
+    '技巧',  # 技术 alt — narrow "skill", off in tech contexts
+    '招术',  # 技术 alt — wuxia register, very off
+    '规模',  # 层面/范畴 alt — wrong dimension ("scale" not "aspect")
+    '升格',  # 提升 alt — "upgrade to higher class", off in skill/effort contexts
+    '升级',  # 提升 alt — software/version register, off in many contexts
 }
 
 
