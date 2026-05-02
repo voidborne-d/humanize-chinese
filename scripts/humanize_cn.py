@@ -324,10 +324,11 @@ WORD_SYNONYMS = {
     # awkward (大幅 only modifies verbs of change like 提升/下降, not nouns).
     '显著': ['明显', '可观'],
     '问题': ['难题', '麻烦', '症结'],
-    # cycle 203: dropped '层面' — "多方面" → "多层面" sub broken;
-    # 多方面 is fixed adverb meaning "multiply", 多层面 means
-    # "multi-level" (different concept). 维度/领域 still preserve adverb.
-    '方面': ['维度', '领域'],
+    # cycle 203: dropped '层面' — "多方面" → "多层面" sub broken.
+    # Also dropping 维度: "多方面" → "多维度" lands in detect_cn's
+    # empty_grand_words list (self-defeat). 领域 alone doesn't carry
+    # the adverbial sense of 多方面, so the whole entry retires.
+    # '方面': ['维度', '领域'],
     '情况': ['状况', '形势', '境况', '局面'],
     '特点': ['特征', '属性', '标志', '特色'],
     # Cycle 71: dropped '招数' — colloquial 'trick / move' (martial-arts
@@ -475,6 +476,8 @@ _CILIN_BLACKLIST = {
     '严重性', '要紧性', '关键性', '基本点', '国本',
     # Domain-mismatched (upward-numerical for 发展)
     '上扬', '上移', '上进', '升华',
+    # 发展 alts: 前行/前进 = literal motion, "X的发展前景" → "X的前行前景" broken
+    '前行', '前进',
     # Archaic / classical for 系统
     '板眼', '伦次', '条贯', '战线',
     # Overly colloquial / butcher-y for 分析
@@ -610,6 +613,20 @@ _CILIN_BLACKLIST = {
     '末尾',  # 最后 alt — physical position, off in temporal context
     '尾子',  # 最后 alt — colloquial
     '尾声',  # 最后 alt — narrow ("finale" of event/work)
+    '鹏程',  # 前景 alt — mythological "Peng's flight", way too poetic
+    '奔头儿',  # 前景 alt — colloquial dialect ("something to look forward to")
+    '乌纱',  # 前程 alt — archaic "official's hat", career-narrow
+    '乌纱帽',  # 前程 alt — same
+    '功名',  # 前程 alt — imperial-exam era register
+    '前程',  # 前景 alt — career-path slot, breaks "广阔的发展前景" idiom
+    '前途',  # 前景 alt — career-track slot, "广阔的发展前途" reads off in 现代 prose
+    '兼备',  # 具有 alt — "具有X" → "兼备X" requires plural object
+    '议会',  # 会议 alt — "parliament", totally different ("此次议会" 错)
+    '集会',  # 会议 alt — narrow ("rally"), off in business meeting context
+    '治理',  # 管理 alt — "governance", domain-shift from "manage"
+    '治本',  # 管理 alt — narrow medical idiom ("treat root cause")
+    '治治',  # 管理 alt — colloquial duplicate ("punish/teach a lesson")
+    '管事',  # 管理 alt — narrow ("be in charge of trifles"), colloquial
 }
 
 
@@ -633,6 +650,16 @@ _CILIN_SOURCE_BLACKLIST = {
     '不能',  # 不能解决 → 未能解决 ("can't" → "didn't succeed", semantic shift)
     '什么',  # 什么东西 → 咋样东西 (咋样 colloquial + register-mismatch)
     '只是',  # 只是开始 → 单单开始 (单单 modifies things, not actions)
+    # Idiom-anchor nouns: substituting these breaks fixed compounds even when
+    # the alt is grammatically valid. "发展前景"→"发展未来" reads off.
+    '前景',  # 发展前景 / 应用前景 / 推进前景 — idiom-fixed
+    '前途',  # 发展前途 / 学术前途 — idiom-fixed
+    # Adverbial-compound anchors: 方面 cilin alts (上头/上面/地方/方位/方向)
+    # all break "多方面" / "各方面" idiomatic compounds.
+    '方面',  # 多方面/各方面 → 多地方/各上面 — broken
+    # Educational vocabulary anchors: 教学 cilin alts (上书/任课/执教/主讲)
+    # are role-specific or archaic, all break the generic noun slot.
+    '教学',  # 教育教学 → 教育上书 — archaic ("submit memorial")
 }
 
 
@@ -881,6 +908,30 @@ def reduce_high_freq_bigrams(text, strength=0.3, scene='general'):
             prev_ch = original_text[pos - 1:pos] if pos > 0 else ''
             if word == '解决' and prev_ch == '了' and next_ch in '策心议定断':
                 continue
+            # Compound-noun guard: '发展' acts as N1 in 'X的发展前景/态势/...'
+            # — substituting to verb-form alts (推进/进展/推动) breaks the
+            # NP. Skip when followed by a known compound noun suffix.
+            if word == '发展':
+                next_two = original_text[pos + len(word):pos + len(word) + 2]
+                _np_suffixes = (
+                    '前景', '前途', '态势', '趋势', '历程', '规律',
+                    '方向', '格局', '局面', '动力', '空间', '潜力',
+                    '阶段', '路径', '路线', '方式', '模式',
+                )
+                if next_two in _np_suffixes:
+                    continue
+                # Same-sentence repetition guard: '推动X长效发展' → '推动X长效推进'
+                # gives 推动+推进 redundancy. Skip if 推 appears in prior 6
+                # chars within same sentence.
+                left_ctx = original_text[max(0, pos - 6):pos]
+                if '推' in left_ctx and not any(c in '。！？' for c in left_ctx):
+                    continue
+            # 分析 in noun-modifier slot: '分析师' / '分析员' should not
+            # become '解读师' / '剖析员' (not real words).
+            if word == '分析':
+                next_ch = original_text[pos + len(word):pos + len(word) + 1]
+                if next_ch in '师员家者':
+                    continue
             # Pick primary for first replaced occurrence, alternate for others
             if k == min(to_replace):
                 replacement = _pick_safe(primary, next_ch)
@@ -1460,11 +1511,32 @@ def randomize_sentence_lengths(text, aggressive=False, seed=None):
                     '同时', '同样', '此外', '另外', '更', '不仅', '而且',
                     '进而', '继而', '充分', '进一步', '同时也',
                 )
+                # Modal/aux continuators: only block when first_part is a
+                # short bare NP (no main verb). Long first_parts with their
+                # own verb can stand alone, so allow truncation there.
+                _modal_continuators = (
+                    '能够', '能', '可以', '可', '将会', '将',
+                    '亦可', '亦', '也将', '也能', '也可',
+                )
                 rest_after_comma = s[comma_pos + 1:].lstrip()
                 if rest_after_comma.startswith(_bare_continuators):
                     result.append(s + p)
                     i += 1
                     continue
+                if rest_after_comma.startswith(_modal_continuators):
+                    # Heuristic: if first_part has a main verb, allow split.
+                    # Bare NP (subject-only) creates a fragment.
+                    first_cn = len(re.findall(r'[一-鿿]', first_part))
+                    _verb_markers = (
+                        '是', '有', '做', '用', '把', '让', '使', '给',
+                        '提', '推', '完', '实', '达', '形', '构', '反',
+                        '显', '表', '维', '保', '改', '优', '调', '处',
+                        '通过', '运用', '采用', '成为', '需要', '获得',
+                    )
+                    if first_cn < 12 and not any(m in first_part for m in _verb_markers):
+                        result.append(s + p)
+                        i += 1
+                        continue
                 rest_part = s[comma_pos + 1:]
                 result.append(first_part + p)
                 # Push the rest as a new "sentence" to be processed

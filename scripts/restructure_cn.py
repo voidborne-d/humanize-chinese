@@ -791,14 +791,38 @@ def remove_ai_fillers(text, delete_prob=0.5):
 # are AI fillers) and short (3-6 chars) so they count toward short_frac.
 
 _SHORT_REACTIONS_NEUTRAL = [
-    # Intentionally empty. Debate/opinion-context phrases like
-    # "确实如此。" / "有一定道理。" read jarring at the end of
-    # informational/business/news paragraphs (quarterly reports,
-    # news items, factual narration). Fluency takes priority over
-    # the short_frac LR signal these reactions used to provide.
-    # FORMAL pool retained for markdown-headered formal documents.
-    # Empty list triggers early return in _insert_reactions_in_paragraph.
+    # Empty by design. Debate/opinion-style phrases like "确实如此。"
+    # read jarring after informational paragraphs. Content-summary
+    # variants live in _SHORT_REACTIONS_CONTENT (gated by positive
+    # content markers) so the short_frac LR signal still gets fed
+    # without re-introducing debate-style phrasing.
 ]
+
+
+# Content-summary pool: short closing sentences that summarize the
+# preceding informational content. Only applied when the paragraph
+# contains a positive content marker (进展/价值/前景/成果/...) so the
+# closer reads as a natural editorial flourish rather than abstract
+# agreement. Pool mixes formal and colloquial registers for variance.
+_SHORT_REACTIONS_CONTENT = [
+    '成效不小。', '进展不小。', '势头不错。', '势头良好。',
+    '前景看好。', '前景广阔。',
+    '空间不小。', '潜力不小。', '影响不小。',
+    '颇有看点。', '颇有可期之处。', '不容小觑。',
+]
+
+
+# Positive content markers — paragraph must contain at least one of
+# these for _SHORT_REACTIONS_CONTENT to fire. Keeps the closer tied
+# to content; skips on neutral/critical paragraphs where summary
+# would feel imposed.
+_POSITIVE_CONTENT_MARKERS = (
+    '进展', '价值', '基础', '前景', '作用', '意义', '支撑', '突破',
+    '成果', '优势', '推进', '潜力', '动力', '活力', '空间', '机遇',
+    '应用', '能力', '提升', '推动', '效果', '保障', '助力', '机会',
+    '帮助', '支持', '发展', '改进', '提高', '增强', '促进', '加快',
+    '完善', '体验', '创新',
+)
 
 
 # cycle 151: formal-register variant for markdown-headered structured
@@ -1039,10 +1063,16 @@ def _insert_reactions_in_paragraph(p, target, max_per, min_sentences=3, scene='g
         prob = min(0.85, 0.35 + gap * 3.0)
     if random.random() < prob:
         # cycle 151: 'formal' scene routes to the formal-register pool
-        pool = (_SHORT_REACTIONS_FORMAL if scene == 'formal'
-                else _SHORT_REACTIONS_NEUTRAL)
-        # cycle 204: empty NEUTRAL pool means general scene gets no
-        # neutral reaction insertion; bail out cleanly.
+        if scene == 'formal':
+            pool = _SHORT_REACTIONS_FORMAL
+        elif scene == 'social':
+            pool = _SHORT_REACTIONS_NEUTRAL  # social path keeps original (empty)
+        else:
+            # general/business: gate content pool on positive markers in paragraph.
+            if any(m in p for m in _POSITIVE_CONTENT_MARKERS):
+                pool = _SHORT_REACTIONS_CONTENT
+            else:
+                pool = _SHORT_REACTIONS_NEUTRAL  # empty → bail
         if not pool:
             return p
         if used is not None:
