@@ -187,7 +187,9 @@ WORD_SYNONYMS = {
     # cycle 160: dropped 考察 — '研究表明' commonly substituted to
     # '考察表明', which reads off-register (考察 = inspection visit).
     # Audit found in deepseek academic sample.
-    '研究': ['探究', '审视', '钻研'],
+    # cycle 205: dropped '审视' — "本研究" → "本审视" broken
+    # (审视 = critically examine, "本审视" reads as "this examination")
+    '研究': ['探究', '钻研'],
     '表明': ['显示', '说明', '反映', '揭示'],
     '认为': ['觉得', '以为', '判断', '主张'],
     '需要': ['有必要', '须', '要', '得'],
@@ -202,7 +204,7 @@ WORD_SYNONYMS = {
     # 食粮" / "供给一面思考的镜子"). Added '给予' (grant/give) which works
     # in abstract conceptual contexts.
     '提供': ['给出', '呈上', '给予'],
-    '分析': ['剖析', '解读', '拆解', '审视'],
+    '分析': ['剖析', '解读', '拆解'],  # cycle 205: drop 审视 (same as 研究 alt)
     '促进': ['推动', '助推', '带动', '催动'],
     '利用': ['借用', '运用', '动用', '凭借'],
     '建立': ['搭建', '构筑', '组建', '创设'],
@@ -559,6 +561,18 @@ _CILIN_BLACKLIST = {
     '正值',  # 正在 alt — only with time periods (正值春季), broken in "正值推动"
     '条理',  # 系统 alt — "智能评估系统" → "智能评估条理" broken (条理 = orderliness)
     '功用',  # 意义/作用 alt — narrow "function", "意义" → "功用" register-mismatched
+    # cycle 205 (sway 语义不通畅 directive 续):
+    '世界',  # 领域 alt — "教育领域" → "教育世界" semantic shift (世界 = world)
+    '实力',  # 能力 alt — "沟通能力" → "沟通实力" wrong (能力 = capability, 实力 = strength)
+    '体系',  # 系统 alt — "智能评估系统" → "智能评估体系" register-mismatched
+    '审美',  # 审视 alt — "审视" → "审美" totally wrong meaning (aesthetic judgment)
+    '琢磨',  # 研究 alt — informal "ponder", off in formal contexts
+    '作用',  # 意义 alt — "真正意义上" → "真正作用上" broken (作用 = function, 意义 = meaning/significance)
+    '力量',  # 意义/能力 alt — "真正意义上" → "真正力量上" broken
+    '功力',  # 意义 alt — "真正意义上" → "真正功力上" broken (功力 = 内力 wuxia)
+    '功效',  # 意义 alt — "真正意义上" → "真正功效上" broken
+    '功能',  # 意义 alt — "真正意义上" → "真正功能上" broken (function not meaning)
+    '今朝',  # 现在 alt — archaic poetic register ("今朝有酒今朝醉"), off in modern prose
 }
 
 
