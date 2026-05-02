@@ -495,6 +495,10 @@ _CILIN_BLACKLIST = {
     # cycle 195: broken alts surfaced in README humanize 输出 audit
     '念书',  # 学习 alt — "深度学习" → "深度念书" semantically wrong
     '攻读',  # 学习 alt — only "study academically", off in "深度学习"
+    '学学',  # 学习 alt — broken (just repeated char)
+    '修业',  # 学习 alt — archaic ("study at school")
+    '上学',  # 学习 alt — only "go to school", off in tech contexts
+    '就学',  # 学习 alt — same as 上学
     '肥力',  # 精力 alt — 肥力 means soil fertility (土壤肥力)
     '个私',  # 个人 alt — regional/dialect, off in formal text
     '人家',  # 个人 alt — pronoun "she/he/they", semantic shift
