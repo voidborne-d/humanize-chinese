@@ -203,7 +203,10 @@ WORD_SYNONYMS = {
     # all genres ("无法供给清晰的推理路径" / "供给代码示例" / "供给精神
     # 食粮" / "供给一面思考的镜子"). Added '给予' (grant/give) which works
     # in abstract conceptual contexts.
-    '提供': ['给出', '呈上', '给予'],
+    # cycle 214: dropped 呈上 — overly formal "respectfully present",
+    # in tech/business context "呈上聊天功能" / "呈上食物" reads off.
+    # Already in _CILIN_BLACKLIST but WORD_SYNONYMS path bypassed.
+    '提供': ['给出', '给予'],
     '分析': ['剖析', '解读', '拆解'],  # cycle 205: drop 审视 (same as 研究 alt)
     '促进': ['推动', '助推', '带动', '催动'],
     '利用': ['借用', '运用', '动用', '凭借'],
@@ -283,7 +286,10 @@ WORD_SYNONYMS = {
     '基于': ['立足于', '依托', '以…为基础', '仰赖'],
     '对于': ['针对', '就', '关于', '面对'],
     '非常': ['极其', '十分', '很', '格外'],
-    '已经': ['早已', '业已', '已', '早就'],
+    # cycle 214: dropped 业已 — archaic ("已经" classical alt). In modern
+    # informational text "工作功底业已落后" reads stilted. Kept for novel
+    # via NOVEL_BLACKLIST_CANDIDATES exclusion (but no longer in default).
+    '已经': ['早已', '已', '早就'],
     '完全': ['彻底', '全然', '纯粹', '压根'],
     '不断': ['持续', '始终', '一再', '反复'],
     '逐渐': ['渐渐', '慢慢', '一步步', '日渐'],
@@ -305,7 +311,9 @@ WORD_SYNONYMS = {
     '特别': ['尤其'],
     '一定': ['某种', '相当', '一些', '多少'],
     '必须': ['得', '务必', '非得', '须'],
-    '可能': ['也许', '兴许', '或许', '大概'],
+    # cycle 214: dropped 兴许 — archaic dialect ("perhaps" 北方话/古风).
+    # "事情兴许并不如表面所示" 读起来古旧。
+    '可能': ['也许', '或许', '大概'],
     # ── 名词 / 概念 ──
     # cycle 164: dropped '重要' — substring matches inside 重要性 (28 hits)
     # and 至关重要 (16 hits) and 重要性 → 核心性 / 要紧性 / 紧要性 is
@@ -323,7 +331,10 @@ WORD_SYNONYMS = {
     # cycle 202: dropped '大幅' — adverb-only, "显著进展" → "大幅进展"
     # awkward (大幅 only modifies verbs of change like 提升/下降, not nouns).
     '显著': ['明显', '可观'],
-    '问题': ['难题', '麻烦', '症结'],
+    # cycle 214: dropped 症结 — too narrow (medical "crux/critical
+    # bottleneck"), 破解症结 doesn't compose grammatically (症结 needs
+    # 解决 / 找到, not 破解). 难题 / 麻烦 cover most contexts.
+    '问题': ['难题', '麻烦'],
     # cycle 203: dropped '层面' — "多方面" → "多层面" sub broken.
     # Also dropping 维度: "多方面" → "多维度" lands in detect_cn's
     # empty_grand_words list (self-defeat). 领域 alone doesn't carry
@@ -346,13 +357,19 @@ WORD_SYNONYMS = {
     '程度': ['幅度', '力度', '地步', '深浅'],
     '原因': ['缘由', '根源', '起因', '来由'],
     '目标': ['目的', '指向', '靶心', '方向'],
-    '水平': ['档次', '层次', '高度', '水准'],
+    # cycle 214: dropped 层次 — organizational/hierarchical sense, not
+    # numerical. "雌激素水平 → 雌激素层次" semantically broken (hormone
+    # has level/水平/水准, not hierarchy/层次).
+    '水平': ['档次', '高度', '水准'],
     '范围': ['领域', '地带', '区间', '覆盖面'],
     '趋势': ['走向', '苗头', '势头', '倾向'],
     # cycle 208: dropped '实力' — "沟通能力" → "沟通实力" wrong (cycle 205
     # blocked from cilin but WORD_SYNONYMS path was missed). 实力 = strength,
     # 能力 = capability — different concepts.
-    '能力': ['本事', '功底', '才干'],
+    # cycle 214: dropped 功底 — too narrow (skill foundation in art/craft);
+    # "工作能力 → 工作功底" / "取舍能力 → 取舍功底" reads off. 才干 / 本事
+    # cover generic ability slots.
+    '能力': ['本事', '才干'],
     '优势': ['长处', '强项', '亮点', '好处'],
     '资源': ['物资', '储备', '要素'],
     # '场景' alt removed: when source is '市场环境', substitution gives
@@ -629,6 +646,29 @@ _CILIN_BLACKLIST = {
     '管事',  # 管理 alt — narrow ("be in charge of trifles"), colloquial
     '贯彻',  # 实现 alt — narrow ("carry through policy"), "技术实现" → "技术贯彻" 错
     '落实',  # 实现 alt — narrow ("implement policy"), "技术实现" → "技术落实" 错
+    '装具',  # 设备 alt — military equipment, "厨房设备" → "厨房装具" 错
+    '两样',  # 不同 alt — colloquial, "上百种不同" → "上百两样" 病句
+    '释疑',  # 解释 alt — classical, "希望找到一种解释" → "找到一种释疑" 古文
+    '训诂',  # 解释 alt — narrow (textual exegesis), 古文 register
+    '层系',  # 层次 alt — geological layer, semantic shift
+    '兴许',  # 可能 alt — archaic dialect ("perhaps" 北方话), reads stilted
+    '业经',  # 已经 alt — formal/legal classical
+    '著录',  # 记录 alt — narrow (catalog/formally record), "聊天记录" → "聊天著录" 错
+    '笔录',  # 记录 alt — narrow (deposition), domain-shift from generic record
+    '记要',  # 记录 alt — minute-taking, narrow
+    '主焦点',  # 症结 alt — non-word
+    '关子',  # 症结 alt — narrow ("punchline of joke")
+    '各别',  # 不同 alt — colloquial "individually different", "上百各别" 错
+    '唯恐',  # 可能 alt — archaic "for fear that", "事情可能" → "事情唯恐" 错
+    '例外',  # 不同 alt — "exception", "上百种不同" → "上百例外" 病句
+    '下狠心',  # 决定 alt — colloquial idiom "make up mind", "决定您" → "下狠心您" 错
+    '主宰',  # 决定 alt — too strong ("rule over")
+    '了得',  # 决定 alt — different meaning ("remarkable")
+    '仲裁',  # 决定 alt — legal/formal arbitration
+    '公决',  # 决定 alt — legal/formal public decision
+    '公断',  # 决定 alt — legal/formal public arbitration
+    '品目',  # 种类 alt — narrow ("article entries" in catalog)
+    '档级',  # 种类 alt — narrow ("rank/grade")
 }
 
 
@@ -662,6 +702,12 @@ _CILIN_SOURCE_BLACKLIST = {
     # Educational vocabulary anchors: 教学 cilin alts (上书/任课/执教/主讲)
     # are role-specific or archaic, all break the generic noun slot.
     '教学',  # 教育教学 → 教育上书 — archaic ("submit memorial")
+    # Substring-collision anchors: 2-char keys frequently embedded in
+    # larger compounds where substitution corrupts the parent. cycle 214
+    # audit found "说不定" → "说不安" via 不定 → 不安 substring sub.
+    '不定',  # inside 说不定 / 拿不定 / 一定不定; alts (不安/动乱) corrupt parent
+    '末日',  # 后期/晚期/期末 alts shift "doomsday" → "later period"
+    '后期',  # 后期/晚期/期末 cluster — same shift
 }
 
 
