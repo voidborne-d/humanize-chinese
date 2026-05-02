@@ -495,6 +495,18 @@ _CILIN_BLACKLIST = {
 }
 
 
+# Source-side blacklist: 2-char cilin keys that are almost always part of
+# longer compounds, so substituting them mid-compound produces broken
+# Chinese ("少不了" → "少不息" / "受不了" → "受不息"). Block at the source
+# (skip these as candidate replacement targets in
+# reduce_cross_para_3gram_repeat). cycle 191 found '不了' via long_blog
+# inspection: 26%+ of '不了' occurrences are the X不了 negative-potential
+# pattern (受不了/少不了/免不了/做不了…), all break under 不了 → 不息/不停.
+_CILIN_SOURCE_BLACKLIST = {
+    '不了',
+}
+
+
 def _load_cilin():
     """Lazy-load filtered CiLin synonyms. Returns dict[word] -> list[candidate] or empty dict."""
     global _CILIN_CACHE
@@ -978,7 +990,7 @@ def reduce_cross_para_3gram_repeat(text, max_replacements=4, scene='general',
     if len(paragraphs) < 3:
         return text
 
-    cilin_keys = set(cilin.keys())
+    cilin_keys = set(cilin.keys()) - _CILIN_SOURCE_BLACKLIST
     para_words = []
     for p in paragraphs:
         chars = re.findall(r'[一-鿿]', p)
