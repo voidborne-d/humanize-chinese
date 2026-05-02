@@ -1817,6 +1817,12 @@ def inject_noise_expressions(text, density=0.15, style='general'):
             continue
         if re.match(r'^\d+[.\u3002\uff0e)\uff09]', s_lstripped):
             continue
+        # Chinese numbered section headers: "\u4e00\u3001X" / "\uff08\u4e00\uff09X" \u2014 common
+        # in long-form Chinese essays. Don't inject noise before them.
+        if re.match(r'^[\u4e00\u4e8c\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341]+[\u3001,\uff0c]', s_lstripped):
+            continue
+        if re.match(r'^[\uff08(][\u4e00\u4e8c\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341]+[\uff09)]', s_lstripped):
+            continue
         # Title/heading guard: standalone line without terminal punctuation
         # (ends in non-\u3002\uff01\uff1f and is followed by \n\n) \u2014 usually a title.
         # "\u4ece\u7a0b\u5e8f\u5458\u8f6c\u4ea7\u54c1\u7ecf\u7406\uff0c\u7b2c\u4e00\u5e74\u5b66\u5230\u7684\u4e09\u4ef6\u4e8b" \u2192 skip noise injection.
@@ -2093,6 +2099,19 @@ def split_long_sentences(text, max_len=80):
 
     return new_text
 
+def _para_cv(paragraphs):
+    """Helper: compute paragraph-length CV over valid (>=20 cn) paragraphs."""
+    cn_lens = [len(re.findall(r'[一-鿿]', p)) for p in paragraphs]
+    valid_lens = [l for l in cn_lens if l >= 20]
+    if len(valid_lens) < 3:
+        return None
+    m = sum(valid_lens) / len(valid_lens)
+    if m == 0:
+        return None
+    var = sum((l - m) ** 2 for l in valid_lens) / len(valid_lens)
+    return (var ** 0.5) / m
+
+
 def vary_paragraph_rhythm(text):
     """Break uniform paragraph lengths by merging or splitting"""
     paragraphs = text.split('\n\n')
@@ -2105,17 +2124,10 @@ def vary_paragraph_rhythm(text):
     # paragraphs push the distribution back toward uniform — a stuck
     # academic sample went from CV 0.405 to 0.320 after the full
     # pipeline because a long paragraph got split, averaging the
-    # distribution down. Same threshold as compute_paragraph_length_cv
-    # consumes (>=20 cn chars per paragraph).
-    cn_lens = [len(re.findall(r'[一-鿿]', p)) for p in paragraphs]
-    valid_lens = [l for l in cn_lens if l >= 20]
-    if len(valid_lens) >= 3:
-        m_cn = sum(valid_lens) / len(valid_lens)
-        if m_cn > 0:
-            var = sum((l - m_cn) ** 2 for l in valid_lens) / len(valid_lens)
-            cv = (var ** 0.5) / m_cn
-            if cv >= 0.40:
-                return text
+    # distribution down.
+    cv_initial = _para_cv(paragraphs)
+    if cv_initial is not None and cv_initial >= 0.40:
+        return text
 
     lengths = [len(p) for p in paragraphs]
     avg_len = sum(lengths) / len(lengths) if lengths else 100
@@ -2135,6 +2147,12 @@ def vary_paragraph_rhythm(text):
         if s.startswith('**') and s.rstrip().endswith('**'):
             return True
         if re.match(r'^\d+[.。．)）]', s):
+            return True
+        # Chinese numbered section headers: "一、X" / "（一）X" / "(一)X"
+        # Common in long-form Chinese essays (long_blog 一、 二、 三、)
+        if re.match(r'^[一二三四五六七八九十]+[、,，]', s):
+            return True
+        if re.match(r'^[（(][一二三四五六七八九十]+[）)]', s):
             return True
         # Dialogue line (Chinese / Western quotes / Japanese 「」)
         if s and s[0] in '"“「':
@@ -2176,7 +2194,39 @@ def vary_paragraph_rhythm(text):
         
         result.append(para)
         i += 1
-    
+
+    # cycle 219 N-2b: fallback to push paragraph CV up for AI uniform
+    # texts. When the main loop's 0.6/1.5 thresholds didn't fire (all
+    # paragraphs in narrow band), CV stays low. To INCREASE variance,
+    # we merge two adjacent paragraphs whose combined length would be
+    # > 1.5x current average — this creates a long outlier on the
+    # right tail. Only fires on real long text (>= 8 paragraphs) to
+    # avoid distorting medium-length 5-paragraph compositions where
+    # merging 2/5 over-shifts CV past human distribution.
+    cv_after = _para_cv(result)
+    if cv_after is not None and cv_after < 0.35 and len(result) >= 8:
+        cn_lens = [len(re.findall(r'[一-鿿]', p)) for p in result]
+        valid_lens = [l for l in cn_lens if l >= 20]
+        avg_cn = sum(valid_lens) / len(valid_lens) if valid_lens else 100
+        # Find adjacent pair whose combined length is the most above
+        # average (creates a long outlier when merged).
+        best = None
+        for k in range(len(result) - 1):
+            if _is_md_header(result[k]) or _is_md_header(result[k + 1]):
+                continue
+            if cn_lens[k] < 20 or cn_lens[k + 1] < 20:
+                continue
+            combined = cn_lens[k] + cn_lens[k + 1]
+            # Want combined > 1.5x avg to push variance.
+            if combined > avg_cn * 1.5:
+                excess = combined - avg_cn
+                if best is None or excess > best[0]:
+                    best = (excess, k)
+        if best is not None and random.random() < 0.6:
+            k = best[1]
+            merged = result[k] + '\n' + result[k + 1]
+            result = result[:k] + [merged] + result[k + 2:]
+
     return '\n\n'.join(result)
 
 def reduce_punctuation(text):
