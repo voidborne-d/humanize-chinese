@@ -675,6 +675,23 @@ _CILIN_BLACKLIST = {
     '倍受',  # 面临 alt — only fits 关注/重视 (positive), "倍受挑战" 错
     '备受',  # 面临 alt — same constraint
     '未遭',  # 面临 alt — archaic
+    # cycle 218 longform inject_noise + cilin audit additions:
+    '筋肉',  # 肌肉 alt — Japanese-derived, off in modern Chinese
+    '年华',  # 时间 alt — poetic ("youth"), "恢复年华" 错
+    '光阴',  # 时间 alt — poetic, off in tech/business
+    '岁时',  # 时间 alt — archaic
+    '年光',  # 时间 alt — poetic
+    '上马',  # 开始 alt — colloquial "start project (大跃进 era)"
+    '伊始',  # 开始 alt — formal "at the start", off in casual
+    '先声',  # 开始 alt — narrow ("first signs/prelude")
+    '城池',  # 城市 alt — ancient walled city
+    '城邑',  # 城市 alt — archaic
+    '地市',  # 城市 alt — gov-policy "city-prefecture"
+    '大哥大',  # 手机 alt — 90s mobile phone
+    '无绳机',  # 手机 alt — cordless landline phone
+    '固化',  # 稳定 alt — "solidify" wrong meaning
+    '安乐',  # 稳定 alt — "peaceful/comfortable"
+    '原则性',  # 稳定 alt — "principled" wrong slot
     '意志',  # 旨在 alt — "willpower" not "purpose", "意志提高" 错
     '心意',  # 旨在 alt — "intention" but not "aim", same slot mismatch
     '意旨',  # 旨在 alt — archaic "imperial decree"
