@@ -348,7 +348,10 @@ WORD_SYNONYMS = {
     '水平': ['档次', '层次', '高度', '水准'],
     '范围': ['领域', '地带', '区间', '覆盖面'],
     '趋势': ['走向', '苗头', '势头', '倾向'],
-    '能力': ['本事', '实力', '功底', '才干'],
+    # cycle 208: dropped '实力' — "沟通能力" → "沟通实力" wrong (cycle 205
+    # blocked from cilin but WORD_SYNONYMS path was missed). 实力 = strength,
+    # 能力 = capability — different concepts.
+    '能力': ['本事', '功底', '才干'],
     '优势': ['长处', '强项', '亮点', '好处'],
     '资源': ['物资', '储备', '要素'],
     # '场景' alt removed: when source is '市场环境', substitution gives
@@ -576,6 +579,35 @@ _CILIN_BLACKLIST = {
     '目下',  # 目前 alt — archaic ("at present" classical Chinese), sway flagged msg 2198
     '手上',  # 目前 alt — colloquial "in hand", off in formal/academic
     '时下',  # 目前 alt — narrow ("nowadays" trend-context), off in research register
+    # cycle 208 (sway 整理 README sweep):
+    '于今',  # 现在 alt — archaic, "于今" 不像现代汉语
+    '今日',  # 现在 alt — slightly poetic, off in modern prose ("今日X" 报纸 register)
+    '今昔',  # 现在 alt — comparative "now and then", different meaning
+    '参酌',  # 研究 alt — archaic "consult and consider", off in modern formal
+    '掂量',  # 研究 alt — colloquial "weigh up"
+    '揣摩',  # 研究 alt — narrow "ponder/figure out"
+    '斟酌',  # 研究 alt — narrow "deliberate carefully", off in technical research
+    '切磋',  # 研究 alt — narrow "exchange skills" (martial arts/scholarly)
+    '技艺',  # 技术 alt — narrow "art/craft", off in tech contexts
+    '技能',  # 技术 alt — narrow "skill", off when 技术 means "technology"
+    '反过来看',  # noise/transition alt — odd opener mid-essay
+    '说到这里',  # noise/transition alt — narrative voice, off in essay
+    '人为',  # 人工 alt — "人工智能" → "人为智能" broken (人为=man-made, conceptually different)
+    '人造',  # 人工 alt — same; "人造智能" reads as "fake AI"
+    '力士',  # 人工 alt — totally different ("strongman")
+    '人力',  # 人工 alt — "人工智能" → "人力智能" broken (人力 = manpower)
+    '教养',  # 教育 alt — "教育教学" → "教养教学" broken (教养=upbringing/manners)
+    '教化',  # 教育 alt — moralistic tone, off in modern AI/tech context
+    '感化',  # 教育 alt — moralistic, off
+    '启蒙',  # 教育 alt — narrow ("enlighten" beginner level)
+    '教诲',  # 教育 alt — moralistic ("teaching/admonition"), off
+    '教导',  # 教育 alt — narrow ("guide/instruct"), off in 教育领域
+    '力促',  # 推动 alt — archaic ("forcefully promote")
+    '末了',  # 最后 alt — colloquial dialect
+    '末后',  # 最后 alt — archaic
+    '末尾',  # 最后 alt — physical position, off in temporal context
+    '尾子',  # 最后 alt — colloquial
+    '尾声',  # 最后 alt — narrow ("finale" of event/work)
 }
 
 
@@ -663,8 +695,10 @@ NOISE_EXPRESSIONS = {
                     '约莫', '估摸着', '八成'],
     # Cycle 77: dropped '换句话说' — it is in detect_cn's ai_high_freq_words
     # pattern, so injecting it raises the AI score (self-defeating).
-    'transition_casual': ['话说回来', '反过来看', '说到这里',
-                          '再往下想', '回过头看', '顺着这个思路'],
+    # cycle 208: trimmed — '话说回来'/'反过来看'/'说到这里'/'回过头看' all
+    # narrative-voice openers that read as off-register in essay/factual text.
+    # Kept '再往下想'/'顺着这个思路' which work in analytical contexts.
+    'transition_casual': ['再往下想', '顺着这个思路'],
     # cycle 195: trimmed 8 → 3 — removed register-mismatched fillers
     # (怎么说呢/不瞒你说/你别说/讲真/这么说吧) that read very colloquial /
     # internet-slangy. They land in formal/business/academic text and
@@ -1651,7 +1685,7 @@ def remove_three_part_structure(text):
     replacements = [
         (r'首先[，,]\s*', ''),
         (r'其次[，,]\s*', lambda m: random.choice(['另外，', '此外，', ''])),
-        (r'最后[，,]\s*', lambda m: random.choice(['还有，', '最后说一点，', ''])),
+        (r'最后[，,]\s*', lambda m: random.choice(['还有，', ''])),  # cycle 208: drop 最后说一点 (awkward in essays)
         (r'第一[，,、]\s*', ''),
         (r'第二[，,、]\s*', lambda m: random.choice(['接着，', '然后，', ''])),
         (r'第三[，,、]\s*', lambda m: random.choice(['还有，', '再就是，', ''])),
