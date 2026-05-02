@@ -603,6 +603,8 @@ _CILIN_BLACKLIST = {
     '教诲',  # 教育 alt — moralistic ("teaching/admonition"), off
     '教导',  # 教育 alt — narrow ("guide/instruct"), off in 教育领域
     '力促',  # 推动 alt — archaic ("forcefully promote")
+    '方略',  # 规划/计划 alt — military/strategic, off in "任务规划" → "任务方略"
+    '透过',  # 通过 alt — physical "penetrate through", off in 通过合力 context
     '末了',  # 最后 alt — colloquial dialect
     '末后',  # 最后 alt — archaic
     '末尾',  # 最后 alt — physical position, off in temporal context
