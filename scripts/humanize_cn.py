@@ -492,6 +492,25 @@ _CILIN_BLACKLIST = {
     # cycle 186: cilin 领域 alts that mean physical land, wrong for
     # abstract domain — 教育领域 → 教育土地/园地/国土/圈子/天地 broken
     '土地', '园地', '国土', '圈子', '天地',
+    # cycle 195: broken alts surfaced in README humanize 输出 audit
+    '念书',  # 学习 alt — "深度学习" → "深度念书" semantically wrong
+    '攻读',  # 学习 alt — only "study academically", off in "深度学习"
+    '肥力',  # 精力 alt — 肥力 means soil fertility (土壤肥力)
+    '个私',  # 个人 alt — regional/dialect, off in formal text
+    '人家',  # 个人 alt — pronoun "she/he/they", semantic shift
+    '匹夫',  # 个人 alt — archaic "common person"
+    '一发',  # 更加 alt — archaic, "一发充实" reads broken
+    '事体',  # 工作/事情 alt — regional dialect, off in formal text
+    '本性',  # 个性 alt — "个性化" → "本性化" broken (本性 ≈ nature)
+    '天性',  # 个性 alt — "个性化" → "天性化" broken
+    '擘画',  # 规划/计划 alt — archaic, off in modern Chinese
+    '圈圈',  # 层面/局面/范畴 alt — wrong meaning ("circle")
+    '框框',  # 层面/范畴 alt — wrong meaning ("frame")
+    '对头',  # 正确/科学 alt — colloquial "correct/foe", semantic shift
+    '不利',  # 正确/科学 alt — opposite meaning ("unfavorable")!
+    '不易',  # 正确/科学 alt — unrelated ("not easy")
+    '得法',  # 正确/科学 alt — narrow ("appropriate method")
+    '上头',  # 方面 alt — body part ("top of head")
 }
 
 
@@ -581,8 +600,11 @@ NOISE_EXPRESSIONS = {
     # pattern, so injecting it raises the AI score (self-defeating).
     'transition_casual': ['话说回来', '反过来看', '说到这里',
                           '再往下想', '回过头看', '顺着这个思路'],
-    'filler': ['当然了', '其实', '说到底', '怎么说呢', '不瞒你说',
-               '你别说', '讲真', '这么说吧'],
+    # cycle 195: trimmed 8 → 3 — removed register-mismatched fillers
+    # (怎么说呢/不瞒你说/你别说/讲真/这么说吧) that read very colloquial /
+    # internet-slangy. They land in formal/business/academic text and
+    # break fluency. Kept '其实/说到底/当然了' which fit most registers.
+    'filler': ['当然了', '其实', '说到底'],
     # Cycle 55: dropped 5 entries that appear 0 times in 2.5M chars of
     # human Chinese (news + novel corpora) — '依我之见 / 以我的经验 /
     # 在我的理解里 / 就我所知 / 我个人倾向于'. These read as AI-style
@@ -904,10 +926,8 @@ def _boost_one_paragraph_cv(para, target_cv):
 
 
 _PARA_BOOST_REACTIONS = (
-    '的确', '确实如此', '颇有道理', '不无道理', '事出有因',
-    '耐人寻味', '值得深思', '让人深思', '可见一斑', '有一定道理',
-    '各有道理', '各有说法', '难以一概', '难以断言', '说来话长',
-    '一言难尽',
+    '的确', '确实如此', '颇有道理', '不无道理',
+    '有一定道理', '各有道理', '各有说法', '值得深思',
 )
 
 
@@ -1071,14 +1091,15 @@ def reduce_cross_para_3gram_repeat(text, max_replacements=4, scene='general',
 
 
 _PARA_INTERJECTION_NEUTRAL = (
-    '此点尚需进一步思考，简单的结论未必能完全成立。',
+    # cycle 195: trimmed 8 → 3 — removed 5 academic-only interjections
+    # (此点尚需 / 此种情形 / 相关因素 / 若进一步 / 仔细推敲) that read
+    # contemplative-academic when injected mid-text in informational /
+    # workplace / general samples. Kept 3 entries that fit informational
+    # registers (common-saying or "另一种角度" framing). Loses some pool
+    # variety; bn=10 still has 3 distinct picks per pass.
     '事情可能并不如表面所示那般简单，需要更细致地审视。',
-    '此种情形值得深入分析，单一视角恐怕难以全面把握。',
     '若从更多角度去考虑，结论恐怕会有不少不同之处。',
     '换个角度去看也成立，问题的另一面同样不容忽视。',
-    '相关因素并非完全独立，需要综合考虑各方面的影响。',
-    '若进一步探讨这一问题，答案恐怕并非如此唯一确定。',
-    '仔细推敲就会发现，结论的成立有其特定前提条件。',
 )
 
 
@@ -1489,7 +1510,7 @@ def remove_three_part_structure(text):
     # Don't just delete — replace with natural transitions
     replacements = [
         (r'首先[，,]\s*', ''),
-        (r'其次[，,]\s*', lambda m: random.choice(['再说，', '另外，', ''])),
+        (r'其次[，,]\s*', lambda m: random.choice(['另外，', '此外，', ''])),
         (r'最后[，,]\s*', lambda m: random.choice(['还有，', '最后说一点，', ''])),
         (r'第一[，,、]\s*', ''),
         (r'第二[，,、]\s*', lambda m: random.choice(['接着，', '然后，', ''])),
