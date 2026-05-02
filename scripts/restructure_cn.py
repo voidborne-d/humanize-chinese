@@ -791,12 +791,11 @@ def remove_ai_fillers(text, delete_prob=0.5):
 # are AI fillers) and short (3-6 chars) so they count toward short_frac.
 
 _SHORT_REACTIONS_NEUTRAL = [
-    # cycle 204 (sway directive 语句通顺优先): emptied. All previously-kept
-    # entries are debate/opinion-context phrases ("确实如此。" / "有一定道理。"
-    # etc.) that read jarring at end of informational/business/news
-    # paragraphs (e.g. quarterly report or pure-fact narration). Per sway
-    # 2026-05-02 msg 2171, fluency now overrides LR-floor concerns; the
-    # short_frac LR signal contribution from these reactions is forfeit.
+    # Intentionally empty. Debate/opinion-context phrases like
+    # "确实如此。" / "有一定道理。" read jarring at the end of
+    # informational/business/news paragraphs (quarterly reports,
+    # news items, factual narration). Fluency takes priority over
+    # the short_frac LR signal these reactions used to provide.
     # FORMAL pool retained for markdown-headered formal documents.
     # Empty list triggers early return in _insert_reactions_in_paragraph.
 ]
