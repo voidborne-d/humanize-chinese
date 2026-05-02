@@ -1678,6 +1678,10 @@ def inject_noise_expressions(text, density=0.15, style='general'):
             '可以看到，', '很明显，', '你会发现，',
             '一开始，', '最初，', '起头，', '先说，',
             '接着，', '然后，', '再就是，', '最后说一点，',
+            # Standard discourse connectors: stacking noise before these
+            # creates "顺着这个思路，然而，X" double-connector reads.
+            '然而，', '但是，', '不过，', '可是，', '因此，', '所以，',
+            '因而，', '而且，', '同时，', '不仅，', '相反，', '反之，',
         )
         if s_lstripped.startswith(_existing_transitions):
             continue
@@ -1708,6 +1712,14 @@ def inject_noise_expressions(text, density=0.15, style='general'):
             continue
         if re.match(r'^\d+[.\u3002\uff0e)\uff09]', s_lstripped):
             continue
+        # Title/heading guard: standalone line without terminal punctuation
+        # (ends in non-\u3002\uff01\uff1f and is followed by \n\n) \u2014 usually a title.
+        # "\u4ece\u7a0b\u5e8f\u5458\u8f6c\u4ea7\u54c1\u7ecf\u7406\uff0c\u7b2c\u4e00\u5e74\u5b66\u5230\u7684\u4e09\u4ef6\u4e8b" \u2192 skip noise injection.
+        s_trimmed = s_text.rstrip()
+        if s_trimmed and s_trimmed[-1] not in '\u3002\uff01\uff1f.!?':
+            next_text = sentences[i + 1][0] if i + 1 < len(sentences) else ''
+            if next_text.startswith('\n\n') or next_text.startswith('\n'):
+                continue
         if random.random() > density:
             continue
 
