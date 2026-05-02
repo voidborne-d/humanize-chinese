@@ -39,6 +39,10 @@ HUMAN_NEWS_MULTIPARA_PATH = os.path.join(
 # cycle 196: cudrt + m4 OOD human samples (234 total: 200 long
 # business news + 34 long QA), opt-in via --n-human-misc.
 HUMAN_MISC_PATH = os.path.join(WORKSPACE, 'data/human_misc_corpus.jsonl')
+# cycle 217: m4/cudrt OOD AI samples (157 long >=500 cn). Opt-in via
+# --n-ai-misc to expand AI training pool from 170 → 327 max.
+M4_PATH = os.path.join(WORKSPACE, 'data/m4_zh_ood.jsonl')
+CUDRT_PATH = os.path.join(WORKSPACE, 'data/cudrt_zh_ood.jsonl')
 DEFAULT_OUT = os.path.join(SCRIPT_DIR, 'lr_coef_longform.json')
 
 
@@ -53,7 +57,10 @@ def _para_count(t: str, min_para_cn: int = 30) -> int:
     return sum(1 for p in raw if p.strip() and _cn(p) >= min_para_cn)
 
 
-def _load_jsonl(path: str, min_cn: int, min_paras: int = 0) -> list[str]:
+def _load_jsonl(path: str, min_cn: int, min_paras: int = 0,
+                target_label: int | None = None) -> list[str]:
+    """Load text samples from jsonl. If target_label is set (0 or 1),
+    filter by the 'label' field. None means no filter (default)."""
     out = []
     if not os.path.exists(path):
         return out
@@ -63,6 +70,9 @@ def _load_jsonl(path: str, min_cn: int, min_paras: int = 0) -> list[str]:
                 d = json.loads(line)
             except Exception:
                 continue
+            if target_label is not None:
+                if d.get('label') != target_label:
+                    continue
             t = d.get('text') or d.get('content') or ''
             if not t or _cn(t) < min_cn:
                 continue
@@ -101,6 +111,9 @@ def main():
     ap.add_argument('--n-human-misc', type=int, default=0,
                     help='cudrt + m4 OOD human samples (cycle 196 corpus expansion). '
                          'Single-paragraph long business news + QA, 234 total.')
+    ap.add_argument('--n-ai-misc', type=int, default=0,
+                    help='cudrt + m4 OOD AI samples (cycle 217 corpus expansion). '
+                         'Long-form AI text (>=500 cn), ~157 total.')
     ap.add_argument('--seed', type=int, default=42)
     ap.add_argument('--c', type=float, default=1.0)
     ap.add_argument('--min-cn-ai', type=int, default=200)
@@ -118,6 +131,19 @@ def main():
                           min_paras=args.min_paras)
     ai = _take(ai_pool, args.n_ai, args.seed + 2)
     print(f'  AI long-form pool={len(ai_pool)}, taken={len(ai)}')
+
+    ai_misc = []
+    if args.n_ai_misc > 0:
+        print(f'Loading AI misc (m4+cudrt label=1, target n={args.n_ai_misc})...')
+        m4_ai = _load_jsonl(M4_PATH, args.min_cn_misc,
+                            min_paras=args.min_paras, target_label=1)
+        cudrt_ai = _load_jsonl(CUDRT_PATH, args.min_cn_misc,
+                               min_paras=args.min_paras, target_label=1)
+        ai_misc_pool = m4_ai + cudrt_ai
+        ai_misc = _take(ai_misc_pool, args.n_ai_misc, args.seed + 7)
+        print(f'  AI misc pool={len(ai_misc_pool)} (m4={len(m4_ai)}, '
+              f'cudrt={len(cudrt_ai)}), taken={len(ai_misc)}')
+        ai = ai + ai_misc
 
     print(f'Loading human novel (target n={args.n_human_novel})...')
     nov_pool = _load_jsonl(HUMAN_NOVEL_PATH, args.min_cn_novel,
